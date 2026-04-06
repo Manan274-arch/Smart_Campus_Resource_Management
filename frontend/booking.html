@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Smart Campus — Bookings</title>
+  <link rel="stylesheet" href="../css/style.css" />
+  <style>
+    .page-layout { display: grid; grid-template-columns: 360px 1fr; gap: 1.5rem; align-items: start; }
+    @media (max-width: 900px) { .page-layout { grid-template-columns: 1fr; } }
+
+    .booking-form-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 1.5rem; position: sticky; top: 1rem; }
+    .booking-form-card h3 { margin: 0 0 1.25rem; font-size: 1rem; color: var(--text); }
+
+    .form-group { margin-bottom: 1rem; }
+    .form-group label { display: block; color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.35rem; }
+    .form-group input,
+    .form-group select { width: 100%; padding: 0.65rem 0.85rem; background: var(--bg-input); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 0.92rem; box-sizing: border-box; }
+    .form-group input:focus,
+    .form-group select:focus { outline: none; border-color: var(--accent); }
+
+    .avail-indicator { font-size: 0.85rem; padding: 0.5rem 0.75rem; border-radius: 6px; margin-bottom: 1rem; display: none; }
+    .avail-ok   { background: rgba(34,197,94,0.12); color: #22c55e; display: block; }
+    .avail-busy { background: rgba(239,68,68,0.12);  color: #ef4444;  display: block; }
+
+    /* Bookings table */
+    .table-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+    .table-header { display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.25rem; border-bottom: 1px solid var(--border); }
+    .table-header h3 { margin: 0; font-size: 1rem; }
+
+    .filter-row { display: flex; gap: 0.6rem; padding: 0.75rem 1.25rem; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+    .filter-row select,
+    .filter-row input { padding: 0.4rem 0.7rem; background: var(--bg-input); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 0.85rem; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    th { text-align: left; padding: 0.65rem 1rem; color: var(--text-muted); font-weight: 500; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border); }
+    td { padding: 0.7rem 1rem; border-bottom: 1px solid var(--border); color: var(--text); }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg-hover); }
+
+    .empty-row td { text-align: center; color: var(--text-muted); padding: 2rem; }
+
+    .cancel-btn { background: none; border: 1px solid var(--danger); color: var(--danger); padding: 0.3rem 0.7rem; border-radius: 5px; cursor: pointer; font-size: 0.8rem; }
+    .cancel-btn:hover { background: var(--danger); color: #fff; }
+    .cancel-btn:disabled { opacity: 0.4; cursor: default; }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="navbar">
+  <div class="nav-brand">🏛 Smart Campus</div>
+  <div class="nav-links">
+    <a href="dashboard.html"   class="nav-link">Dashboard</a>
+    <a href="booking.html"     class="nav-link active">Bookings</a>
+    <a href="maintenance.html" class="nav-link">Maintenance</a>
+    <a href="analytics.html"   class="nav-link">Analytics</a>
+  </div>
+  <div class="nav-right">
+    <span class="nav-user" id="nav-user">User</span>
+    <button class="btn btn-sm btn-outline" id="btn-logout">Logout</button>
+  </div>
+</nav>
+
+<main class="container">
+  <div class="page-header" style="margin-bottom:1.25rem;">
+    <h2 style="margin:0;font-size:1.25rem;">Resource Bookings</h2>
+    <p style="margin:0.25rem 0 0;color:var(--text-muted);font-size:0.88rem;">Book a resource or view your existing bookings below.</p>
+  </div>
+
+  <div class="page-layout">
+
+    <!-- BOOKING FORM -->
+    <div class="booking-form-card">
+      <h3>New Booking</h3>
+
+      <div class="form-group">
+        <label>Resource Type</label>
+        <select id="sel-type" onchange="filterResources()">
+          <option value="">All Types</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Resource</label>
+        <select id="sel-resource" onchange="checkAvailability()">
+          <option value="">Select a resource</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Date</label>
+        <input type="date" id="sel-date" onchange="checkAvailability()" />
+      </div>
+
+      <div class="form-group">
+        <label>Time Slot</label>
+        <select id="sel-slot" onchange="checkAvailability()">
+          <option value="">Select slot</option>
+        </select>
+      </div>
+
+      <div class="avail-indicator" id="avail-msg">Checking availability…</div>
+
+      <button class="btn btn-primary" style="width:100%;" id="btn-book" onclick="submitBooking()">Confirm Booking</button>
+    </div>
+
+    <!-- BOOKINGS TABLE -->
+    <div class="table-card">
+      <div class="table-header">
+        <h3>My Bookings</h3>
+        <button class="btn btn-sm btn-outline" onclick="loadMyBookings()">↺ Refresh</button>
+      </div>
+
+      <div class="filter-row">
+        <select id="f-status" onchange="applyFilter()">
+          <option value="">All Statuses</option>
+          <option>pending</option>
+          <option>confirmed</option>
+          <option>cancelled</option>
+        </select>
+        <input type="date" id="f-date" onchange="applyFilter()" placeholder="Filter by date" />
+      </div>
+
+      <div id="table-loader" class="hidden" style="padding:1.5rem;text-align:center;color:var(--text-muted);font-size:0.88rem;">Loading…</div>
+
+      <table id="bookings-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Resource</th>
+            <th>Date</th>
+            <th>Slot</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="bookings-tbody">
+          <tr class="empty-row"><td colspan="6">Loading your bookings…</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+</main>
+
+<div id="toast-container"></div>
+
+<script>
+  const API = "/api";
+  const user = JSON.parse(localStorage.getItem("campus_user") || "null");
+  if (!user) { window.location.href = "index.html"; }
+  document.getElementById("nav-user").textContent = user?.name || user?.email || "User";
+  document.getElementById("btn-logout").addEventListener("click", () => { localStorage.clear(); window.location.href = "index.html"; });
+
+  // Set min date to today
+  document.getElementById("sel-date").min = new Date().toISOString().split("T")[0];
+
+  let allResources = [], allSlots = [], myBookings = [];
+
+  function getToken() { return localStorage.getItem("campus_token") || ""; }
+
+  async function apiFetch(path, opts = {}) {
+    try {
+      const res = await fetch(`${API}${path}`, {
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
+        ...opts
+      });
+      if (res.status === 401) { localStorage.clear(); window.location.href = "index.html"; return null; }
+      if (!res.ok) {
+        const e = await res.json().catch(() => ({}));
+        showToast(e.detail || "Error", "error"); return null;
+      }
+      if (res.status === 204) return true;
+      return await res.json();
+    } catch(e) { showToast("Network error", "error"); return null; }
+  }
+
+  async function init() {
+    const [types, resources, slots] = await Promise.all([
+      apiFetch("/resources/types"),
+      apiFetch("/resources/"),
+      apiFetch("/time-slots/")
+    ]);
+
+    allResources = resources || [];
+    allSlots     = slots || [];
+
+    // Populate type dropdown
+    const tSel = document.getElementById("sel-type");
+    (types || []).forEach(t => {
+      const o = document.createElement("option"); o.value = t.type_id; o.textContent = t.type_name; tSel.appendChild(o);
+    });
+
+    populateResources(allResources);
+    populateSlots(allSlots);
+    await loadMyBookings();
+  }
+
+  function populateResources(list) {
+    const sel = document.getElementById("sel-resource");
+    sel.innerHTML = `<option value="">Select a resource</option>`;
+    list.forEach(r => {
+      if (r.status === "under_maintenance") return;
+      const o = document.createElement("option"); o.value = r.resource_id; o.textContent = r.name + (r.status !== "available" ? ` (${r.status})` : ""); sel.appendChild(o);
+    });
+  }
+
+  function populateSlots(slots) {
+    const sel = document.getElementById("sel-slot");
+    sel.innerHTML = `<option value="">Select slot</option>`;
+    slots.forEach(s => {
+      const o = document.createElement("option"); o.value = s.slot_id; o.textContent = `${s.start_time} – ${s.end_time}`; sel.appendChild(o);
+    });
+  }
+
+  function filterResources() {
+    const typeId = document.getElementById("sel-type").value;
+    const filtered = typeId ? allResources.filter(r => String(r.type_id) === typeId) : allResources;
+    populateResources(filtered);
+    clearAvailability();
+  }
+
+  async function checkAvailability() {
+    const resourceId = document.getElementById("sel-resource").value;
+    const date       = document.getElementById("sel-date").value;
+    const slotId     = document.getElementById("sel-slot").value;
+    const msgEl      = document.getElementById("avail-msg");
+
+    msgEl.className = "avail-indicator";
+
+    if (!resourceId || !date || !slotId) return;
+
+    msgEl.textContent = "Checking availability…"; msgEl.classList.add("avail-ok");
+
+    const data = await apiFetch(`/bookings/availability?resource_id=${resourceId}&date=${date}&slot_id=${slotId}`);
+    if (!data) { msgEl.className = "avail-indicator"; return; }
+
+    if (data.available) {
+      msgEl.textContent = "✓ Available — you can book this slot."; msgEl.className = "avail-indicator avail-ok";
+    } else {
+      msgEl.textContent = "✗ Not available — slot already booked."; msgEl.className = "avail-indicator avail-busy";
+    }
+  }
+
+  function clearAvailability() {
+    const el = document.getElementById("avail-msg");
+    el.className = "avail-indicator"; el.textContent = "";
+  }
+
+  async function submitBooking() {
+    const resource_id = parseInt(document.getElementById("sel-resource").value);
+    const date        = document.getElementById("sel-date").value;
+    const slot_id     = parseInt(document.getElementById("sel-slot").value);
+
+    if (!resource_id) return showToast("Select a resource.", "error");
+    if (!date)        return showToast("Select a date.", "error");
+    if (!slot_id)     return showToast("Select a time slot.", "error");
+
+    const btn = document.getElementById("btn-book");
+    btn.disabled = true; btn.textContent = "Booking…";
+
+    const data = await apiFetch("/bookings/", {
+      method: "POST",
+      body: JSON.stringify({ resource_id, date, slot_id })
+    });
+
+    btn.disabled = false; btn.textContent = "Confirm Booking";
+
+    if (data) {
+      showToast("Booking confirmed!", "success");
+      clearAvailability();
+      await loadMyBookings();
+    }
+  }
+
+  async function loadMyBookings() {
+    document.getElementById("table-loader").classList.remove("hidden");
+    const data = await apiFetch("/bookings/my");
+    document.getElementById("table-loader").classList.add("hidden");
+    myBookings = data || [];
+    renderBookings(myBookings);
+  }
+
+  function applyFilter() {
+    const status = document.getElementById("f-status").value;
+    const date   = document.getElementById("f-date").value;
+    const filtered = myBookings.filter(b => {
+      return (!status || b.status === status) && (!date || b.date === date);
+    });
+    renderBookings(filtered);
+  }
+
+  function renderBookings(list) {
+    const tbody = document.getElementById("bookings-tbody");
+    if (list.length === 0) {
+      tbody.innerHTML = `<tr class="empty-row"><td colspan="6">No bookings found.</td></tr>`; return;
+    }
+    tbody.innerHTML = list.map(b => `
+      <tr>
+        <td>#${b.booking_id}</td>
+        <td>${escHtml(b.resource_name || "Resource #" + b.resource_id)}</td>
+        <td>${b.date}</td>
+        <td>${b.slot_label || "Slot #" + b.slot_id}</td>
+        <td><span class="badge badge-${statusClass(b.status)}">${b.status}</span></td>
+        <td>
+          ${b.status !== "cancelled" && b.status !== "confirmed"
+            ? `<button class="cancel-btn" onclick="cancelBooking(${b.booking_id}, this)">Cancel</button>`
+            : `<span style="color:var(--text-muted);font-size:0.8rem;">—</span>`}
+        </td>
+      </tr>
+    `).join("");
+  }
+
+  async function cancelBooking(id, btn) {
+    if (!confirm("Cancel this booking?")) return;
+    btn.disabled = true; btn.textContent = "Cancelling…";
+    const ok = await apiFetch(`/bookings/${id}/cancel`, { method: "PUT" });
+    if (ok) { showToast("Booking cancelled.", "success"); await loadMyBookings(); }
+    else { btn.disabled = false; btn.textContent = "Cancel"; }
+  }
+
+  function statusClass(s) { const m={confirmed:"success",pending:"warning",cancelled:"danger"}; return m[s]||"neutral"; }
+  function escHtml(s){const d=document.createElement("div");d.appendChild(document.createTextNode(s||""));return d.innerHTML;}
+  function showToast(msg,type="info"){const c=document.getElementById("toast-container");const t=document.createElement("div");t.className=`toast toast-${type}`;t.textContent=msg;c.appendChild(t);setTimeout(()=>t.classList.add("show"),10);setTimeout(()=>{t.classList.remove("show");setTimeout(()=>t.remove(),300)},3500);}
+
+  init();
+</script>
+</body>
+</html>

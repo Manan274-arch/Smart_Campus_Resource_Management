@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Smart Campus — Analytics</title>
+  <link rel="stylesheet" href="../css/style.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    .kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1rem; margin-bottom: 1.75rem; }
+    .kpi { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 1.1rem 1.3rem; }
+    .kpi .kpi-val  { font-size: 1.9rem; font-weight: 700; color: var(--accent); }
+    .kpi .kpi-lbl  { color: var(--text-muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 0.2rem; }
+
+    .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-bottom: 1.75rem; }
+    @media (max-width: 900px) { .charts-grid { grid-template-columns: 1fr; } }
+
+    .chart-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 1.25rem; }
+    .chart-card h4 { margin: 0 0 1rem; font-size: 0.95rem; color: var(--text); }
+    .chart-wrap { position: relative; height: 220px; }
+
+    .data-table { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-bottom: 1.25rem; }
+    .data-table h4 { margin: 0; font-size: 0.95rem; padding: 1rem 1.25rem; border-bottom: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    th { padding: 0.6rem 1rem; color: var(--text-muted); font-weight: 500; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border); text-align: left; }
+    td { padding: 0.65rem 1rem; border-bottom: 1px solid var(--border); color: var(--text); }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg-hover); }
+
+    .bar-inline { height: 6px; border-radius: 3px; background: var(--accent); margin-top: 4px; }
+
+    .date-filter { display: flex; gap: 0.6rem; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; }
+    .date-filter label { color: var(--text-muted); font-size: 0.85rem; }
+    .date-filter input { padding: 0.4rem 0.7rem; background: var(--bg-input); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 0.85rem; }
+    .date-filter select { padding: 0.4rem 0.7rem; background: var(--bg-input); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 0.85rem; }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="navbar">
+  <div class="nav-brand">🏛 Smart Campus</div>
+  <div class="nav-links">
+    <a href="dashboard.html"   class="nav-link">Dashboard</a>
+    <a href="booking.html"     class="nav-link">Bookings</a>
+    <a href="maintenance.html" class="nav-link">Maintenance</a>
+    <a href="analytics.html"   class="nav-link active">Analytics</a>
+  </div>
+  <div class="nav-right">
+    <span class="nav-user" id="nav-user">User</span>
+    <button class="btn btn-sm btn-outline" id="btn-logout">Logout</button>
+  </div>
+</nav>
+
+<main class="container">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;flex-wrap:wrap;gap:0.75rem;">
+    <div>
+      <h2 style="margin:0;font-size:1.25rem;">Analytics</h2>
+      <p style="margin:0.25rem 0 0;color:var(--text-muted);font-size:0.88rem;">Resource usage and booking insights.</p>
+    </div>
+    <button class="btn btn-outline btn-sm" onclick="loadAll()">↺ Refresh</button>
+  </div>
+
+  <!-- Quick filter -->
+  <div class="date-filter">
+    <label>Period:</label>
+    <select id="period-sel" onchange="loadAll()">
+      <option value="7">Last 7 days</option>
+      <option value="30" selected>Last 30 days</option>
+      <option value="90">Last 90 days</option>
+      <option value="365">Last year</option>
+    </select>
+  </div>
+
+  <!-- KPI Cards -->
+  <div class="kpi-row">
+    <div class="kpi"><div class="kpi-val" id="kpi-total-bookings">—</div><div class="kpi-lbl">Total Bookings</div></div>
+    <div class="kpi"><div class="kpi-val" id="kpi-confirmed">—</div><div class="kpi-lbl">Confirmed</div></div>
+    <div class="kpi"><div class="kpi-val" id="kpi-cancelled">—</div><div class="kpi-lbl">Cancelled</div></div>
+    <div class="kpi"><div class="kpi-val" id="kpi-util">—</div><div class="kpi-lbl">Avg Utilisation</div></div>
+  </div>
+
+  <!-- Charts -->
+  <div class="charts-grid">
+    <div class="chart-card">
+      <h4>Bookings by Status</h4>
+      <div class="chart-wrap"><canvas id="chart-status"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h4>Daily Booking Trend</h4>
+      <div class="chart-wrap"><canvas id="chart-trend"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h4>Bookings by Resource Type</h4>
+      <div class="chart-wrap"><canvas id="chart-type"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h4>Maintenance Issues by Status</h4>
+      <div class="chart-wrap"><canvas id="chart-maintenance"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Top Resources Table -->
+  <div class="data-table">
+    <h4>Top Resources by Usage</h4>
+    <table>
+      <thead><tr><th>#</th><th>Resource</th><th>Type</th><th>Total Bookings</th><th>Usage Bar</th><th>Last Used</th></tr></thead>
+      <tbody id="top-resources-tbody"><tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:1.5rem;">Loading…</td></tr></tbody>
+    </table>
+  </div>
+
+  <!-- Top Users Table (Admin only) -->
+  <div class="data-table" id="top-users-section" style="display:none;">
+    <h4>Top Users by Bookings</h4>
+    <table>
+      <thead><tr><th>#</th><th>User</th><th>Role</th><th>Bookings</th><th>Confirmed</th><th>Cancelled</th></tr></thead>
+      <tbody id="top-users-tbody"><tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:1.5rem;">Loading…</td></tr></tbody>
+    </table>
+  </div>
+</main>
+
+<div id="toast-container"></div>
+
+<script>
+  const API = "/api";
+  const user = JSON.parse(localStorage.getItem("campus_user") || "null");
+  if (!user) { window.location.href = "index.html"; }
+  document.getElementById("nav-user").textContent = user?.name || user?.email || "User";
+  document.getElementById("btn-logout").addEventListener("click", () => { localStorage.clear(); window.location.href = "index.html"; });
+
+  if (user?.role_id === 1) document.getElementById("top-users-section").style.display = "";
+
+  let charts = {};
+
+  function getToken() { return localStorage.getItem("campus_token") || ""; }
+
+  async function apiFetch(path) {
+    try {
+      const res = await fetch(`${API}${path}`, { headers: { Authorization: `Bearer ${getToken()}` } });
+      if (!res.ok) return null;
+      return await res.json();
+    } catch(e) { return null; }
+  }
+
+  async function loadAll() {
+    const days = parseInt(document.getElementById("period-sel").value);
+    const [summary, usage, trend, maintenance, topUsers] = await Promise.all([
+      apiFetch(`/analytics/summary?days=${days}`),
+      apiFetch(`/analytics/resource-usage?days=${days}`),
+      apiFetch(`/analytics/daily-trend?days=${days}`),
+      apiFetch("/maintenance/"),
+      user?.role_id === 1 ? apiFetch("/users/stats") : Promise.resolve(null)
+    ]);
+
+    renderKPIs(summary);
+    renderStatusChart(summary);
+    renderTrendChart(trend);
+    renderTypeChart(usage);
+    renderMaintenanceChart(maintenance);
+    renderTopResources(usage);
+    if (topUsers) renderTopUsers(topUsers);
+  }
+
+  function renderKPIs(data) {
+    if (!data) return;
+    setText("kpi-total-bookings", data.total_bookings ?? "—");
+    setText("kpi-confirmed",      data.confirmed ?? "—");
+    setText("kpi-cancelled",      data.cancelled ?? "—");
+    const util = data.total_bookings > 0
+      ? Math.round((data.confirmed / data.total_bookings) * 100) + "%"
+      : "—";
+    setText("kpi-util", util);
+  }
+
+  function renderStatusChart(data) {
+    const ctx = document.getElementById("chart-status");
+    if (!ctx || !data) return;
+    destroyChart("status");
+    charts.status = new Chart(ctx, {
+      type: "doughnut",
+      data: {
+        labels: ["Confirmed", "Pending", "Cancelled"],
+        datasets: [{ data: [data.confirmed||0, data.pending||0, data.cancelled||0], backgroundColor: ["#22c55e","#f59e0b","#ef4444"], borderWidth: 0 }]
+      },
+      options: { plugins: { legend: { position: "bottom", labels: { color: "#94a3b8", font: { size: 12 } } } }, cutout: "60%" }
+    });
+  }
+
+  function renderTrendChart(trend) {
+    const ctx = document.getElementById("chart-trend");
+    if (!ctx || !trend || !trend.length) return;
+    destroyChart("trend");
+    charts.trend = new Chart(ctx, {
+      type: "line",
+      data: {
+        labels: trend.map(d => d.date),
+        datasets: [{ label: "Bookings", data: trend.map(d => d.count), borderColor: "#3b82f6", backgroundColor: "rgba(59,130,246,0.1)", fill: true, tension: 0.4, pointRadius: 3 }]
+      },
+      options: {
+        plugins: { legend: { display: false } },
+        scales: { x: { ticks: { color: "#64748b", maxTicksLimit: 7 }, grid: { color: "#1e293b" } }, y: { ticks: { color: "#64748b" }, grid: { color: "#1e293b" }, beginAtZero: true } }
+      }
+    });
+  }
+
+  function renderTypeChart(usage) {
+    const ctx = document.getElementById("chart-type");
+    if (!ctx || !usage || !usage.length) return;
+    destroyChart("type");
+
+    // Aggregate by type_name
+    const byType = {};
+    usage.forEach(r => { byType[r.type_name] = (byType[r.type_name] || 0) + (r.total_bookings || 0); });
+    const labels = Object.keys(byType);
+    const vals   = labels.map(l => byType[l]);
+    const colors = ["#3b82f6","#8b5cf6","#f59e0b","#ef4444","#22c55e","#06b6d4"];
+
+    charts.type = new Chart(ctx, {
+      type: "bar",
+      data: {
+        labels,
+        datasets: [{ label: "Bookings", data: vals, backgroundColor: colors.slice(0, labels.length), borderRadius: 6 }]
+      },
+      options: {
+        plugins: { legend: { display: false } },
+        scales: { x: { ticks: { color: "#64748b" }, grid: { display: false } }, y: { ticks: { color: "#64748b" }, grid: { color: "#1e293b" }, beginAtZero: true } }
+      }
+    });
+  }
+
+  function renderMaintenanceChart(data) {
+    const ctx = document.getElementById("chart-maintenance");
+    if (!ctx || !data) return;
+    destroyChart("maintenance");
+    const counts = { open: 0, "in-progress": 0, resolved: 0, closed: 0 };
+    data.forEach(i => { const s = (i.status||"").toLowerCase(); if (counts[s] !== undefined) counts[s]++; });
+    charts.maintenance = new Chart(ctx, {
+      type: "doughnut",
+      data: {
+        labels: ["Open", "In Progress", "Resolved", "Closed"],
+        datasets: [{ data: [counts.open, counts["in-progress"], counts.resolved, counts.closed], backgroundColor: ["#ef4444","#f59e0b","#22c55e","#64748b"], borderWidth: 0 }]
+      },
+      options: { plugins: { legend: { position: "bottom", labels: { color: "#94a3b8", font: { size: 12 } } } }, cutout: "60%" }
+    });
+  }
+
+  function renderTopResources(usage) {
+    const tbody = document.getElementById("top-resources-tbody");
+    if (!usage || !usage.length) { tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:1.5rem;">No data.</td></tr>`; return; }
+    const maxBookings = Math.max(...usage.map(r => r.total_bookings || 0), 1);
+    tbody.innerHTML = usage.slice(0, 10).map((r, i) => `
+      <tr>
+        <td style="color:var(--text-muted)">${i+1}</td>
+        <td>${escHtml(r.name)}</td>
+        <td><span style="color:var(--text-muted);font-size:0.82rem">${escHtml(r.type_name||"—")}</span></td>
+        <td><strong>${r.total_bookings || 0}</strong></td>
+        <td style="width:120px"><div class="bar-inline" style="width:${Math.round(((r.total_bookings||0)/maxBookings)*100)}%"></div></td>
+        <td style="color:var(--text-muted);font-size:0.82rem">${r.last_used ? formatDate(r.last_used) : "Never"}</td>
+      </tr>
+    `).join("");
+  }
+
+  function renderTopUsers(users) {
+    const tbody = document.getElementById("top-users-tbody");
+    if (!users || !users.length) { tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:1.5rem;">No data.</td></tr>`; return; }
+    tbody.innerHTML = users.slice(0, 10).map((u, i) => `
+      <tr>
+        <td style="color:var(--text-muted)">${i+1}</td>
+        <td>${escHtml(u.name)}</td>
+        <td><span style="color:var(--text-muted);font-size:0.82rem">${escHtml(u.role_name)}</span></td>
+        <td><strong>${u.total_bookings || 0}</strong></td>
+        <td>${u.confirmed_bookings || 0}</td>
+        <td>${u.cancelled_bookings || 0}</td>
+      </tr>
+    `).join("");
+  }
+
+  function destroyChart(key) { if (charts[key]) { charts[key].destroy(); delete charts[key]; } }
+  function setText(id, val) { const el = document.getElementById(id); if (el) el.textContent = val; }
+  function escHtml(s) { const d=document.createElement("div"); d.appendChild(document.createTextNode(s||"")); return d.innerHTML; }
+  function formatDate(dt) { if (!dt) return "—"; return new Date(dt).toLocaleDateString("en-IN",{day:"2-digit",month:"short",year:"numeric"}); }
+  function showToast(msg,type="info"){const c=document.getElementById("toast-container");const t=document.createElement("div");t.className=`toast toast-${type}`;t.textContent=msg;c.appendChild(t);setTimeout(()=>t.classList.add("show"),10);setTimeout(()=>{t.classList.remove("show");setTimeout(()=>t.remove(),300)},3500);}
+
+  Chart.defaults.color = "#94a3b8";
+  Chart.defaults.borderColor = "#1e293b";
+  loadAll();
+</script>
+</body>
+</html>

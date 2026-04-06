@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Smart Campus — Maintenance</title>
+  <link rel="stylesheet" href="../css/style.css" />
+  <style>
+    .summary-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+    .sum-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.25rem; text-align: center; }
+    .sum-card .sum-val { font-size: 1.8rem; font-weight: 700; color: var(--accent); }
+    .sum-card .sum-lbl { color: var(--text-muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; margin-top: 0.15rem; }
+
+    .table-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+    .table-toolbar { display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.25rem; border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 0.75rem; }
+    .filter-row { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+    .filter-row select,
+    .filter-row input { padding: 0.4rem 0.7rem; background: var(--bg-input); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 0.85rem; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    th { padding: 0.65rem 1rem; color: var(--text-muted); font-weight: 500; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border); text-align: left; }
+    td { padding: 0.7rem 1rem; border-bottom: 1px solid var(--border); color: var(--text); }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg-hover); }
+    td.issue-text { max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .actions { display: flex; gap: 0.4rem; }
+
+    /* Modals */
+    .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.65); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 1rem; }
+    .modal-backdrop.hidden { display: none; }
+    .modal { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; width: 100%; max-width: 480px; padding: 1.75rem; position: relative; max-height: 90vh; display: flex; flex-direction: column; }
+    .modal-title { font-size: 1rem; font-weight: 600; margin: 0 0 1.25rem; }
+    .modal-close { position: absolute; top: 1rem; right: 1rem; background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 1.2rem; line-height: 1; }
+    .modal-close:hover { color: var(--text); }
+    .modal-footer { display: flex; justify-content: flex-end; gap: 0.65rem; margin-top: 1.25rem; }
+
+    .form-group { margin-bottom: 1rem; }
+    .form-group label { display: block; color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.35rem; }
+    .form-group textarea,
+    .form-group select { width: 100%; padding: 0.65rem 0.85rem; background: var(--bg-input); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 0.92rem; box-sizing: border-box; font-family: inherit; resize: vertical; }
+    .form-group textarea:focus,
+    .form-group select:focus { outline: none; border-color: var(--accent); }
+
+    /* Logs */
+    .logs-scroll { overflow-y: auto; flex: 1; margin-bottom: 1rem; }
+    .log-entry { padding: 0.65rem 0.85rem; background: var(--bg-input); border-radius: 8px; margin-bottom: 0.6rem; }
+    .log-meta { color: var(--text-muted); font-size: 0.78rem; margin-bottom: 0.2rem; }
+    .log-text { font-size: 0.9rem; }
+    .loading-text, .empty-text { color: var(--text-muted); font-size: 0.88rem; text-align: center; padding: 1rem 0; }
+
+    .log-add { border-top: 1px solid var(--border); padding-top: 1rem; }
+    .log-add textarea { width: 100%; padding: 0.6rem 0.8rem; background: var(--bg-input); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: inherit; font-size: 0.9rem; resize: none; box-sizing: border-box; }
+    .log-add textarea:focus { outline: none; border-color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="navbar">
+  <div class="nav-brand">🏛 Smart Campus</div>
+  <div class="nav-links">
+    <a href="dashboard.html"   class="nav-link">Dashboard</a>
+    <a href="booking.html"     class="nav-link">Bookings</a>
+    <a href="maintenance.html" class="nav-link active">Maintenance</a>
+    <a href="analytics.html"   class="nav-link">Analytics</a>
+  </div>
+  <div class="nav-right">
+    <span class="nav-user" id="nav-user">User</span>
+    <button class="btn btn-sm btn-outline" id="btn-logout">Logout</button>
+  </div>
+</nav>
+
+<main class="container">
+  <div style="margin-bottom:1.25rem;">
+    <h2 style="margin:0;font-size:1.25rem;">Maintenance</h2>
+    <p style="margin:0.25rem 0 0;color:var(--text-muted);font-size:0.88rem;">Report and track resource maintenance issues.</p>
+  </div>
+
+  <!-- Summary cards -->
+  <div class="summary-row">
+    <div class="sum-card"><div class="sum-val" id="card-total">—</div><div class="sum-lbl">Total Issues</div></div>
+    <div class="sum-card"><div class="sum-val" id="card-open" style="color:var(--danger)">—</div><div class="sum-lbl">Open</div></div>
+    <div class="sum-card"><div class="sum-val" id="card-inprogress" style="color:var(--warning)">—</div><div class="sum-lbl">In Progress</div></div>
+    <div class="sum-card"><div class="sum-val" id="card-resolved" style="color:#22c55e">—</div><div class="sum-lbl">Resolved</div></div>
+  </div>
+
+  <!-- Table -->
+  <div class="table-card">
+    <div class="table-toolbar">
+      <div class="filter-row">
+        <select id="filter-status">
+          <option value="">All Statuses</option>
+          <option value="open">Open</option>
+          <option value="in-progress">In Progress</option>
+          <option value="resolved">Resolved</option>
+          <option value="closed">Closed</option>
+        </select>
+        <select id="filter-resource"><option value="">All Resources</option></select>
+        <input type="text" id="filter-search" placeholder="Search issues…" style="min-width:160px;" />
+      </div>
+      <button class="btn btn-primary btn-sm" id="btn-new-issue">+ Report Issue</button>
+    </div>
+
+    <div id="table-loader" class="hidden" style="padding:1.5rem;text-align:center;color:var(--text-muted);font-size:0.88rem;">Loading…</div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Resource</th>
+          <th>Issue</th>
+          <th>Status</th>
+          <th>Reported</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="maintenance-tbody">
+        <tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:2rem;">Loading…</td></tr>
+      </tbody>
+    </table>
+
+    <div id="empty-state" class="hidden" style="padding:2.5rem;text-align:center;color:var(--text-muted);font-size:0.9rem;">
+      No maintenance issues found.
+    </div>
+  </div>
+</main>
+
+<!-- ── MODAL: New Issue ── -->
+<div class="modal-backdrop hidden" id="modal-new">
+  <div class="modal">
+    <button class="modal-close" onclick="closeNewModal()">✕</button>
+    <div class="modal-title">Report New Issue</div>
+
+    <div class="form-group">
+      <label>Resource</label>
+      <select id="form-resource"><option value="">Select resource</option></select>
+    </div>
+    <div class="form-group">
+      <label>Issue Description</label>
+      <textarea id="form-issue" rows="4" placeholder="Describe the issue in detail…"></textarea>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeNewModal()">Cancel</button>
+      <button class="btn btn-primary" id="btn-submit-issue" data-label="Submit" onclick="submitNewIssue()">Submit</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL: Edit Issue ── -->
+<div class="modal-backdrop hidden" id="modal-edit">
+  <div class="modal">
+    <button class="modal-close" onclick="closeEditModal()">✕</button>
+    <div class="modal-title">Edit Issue</div>
+    <input type="hidden" id="edit-id" />
+
+    <div class="form-group">
+      <label>Description</label>
+      <textarea id="edit-issue" rows="4"></textarea>
+    </div>
+    <div class="form-group">
+      <label>Status</label>
+      <select id="edit-status">
+        <option value="open">Open</option>
+        <option value="in-progress">In Progress</option>
+        <option value="resolved">Resolved</option>
+        <option value="closed">Closed</option>
+      </select>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeEditModal()">Cancel</button>
+      <button class="btn btn-primary" id="btn-submit-edit" data-label="Save" onclick="submitEditIssue()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL: Logs ── -->
+<div class="modal-backdrop hidden" id="modal-logs">
+  <div class="modal" style="max-width:520px;">
+    <button class="modal-close" onclick="closeLogsModal()">✕</button>
+    <div class="modal-title" id="logs-title">Maintenance Logs</div>
+    <input type="hidden" id="log-maintenance-id" />
+
+    <div class="logs-scroll">
+      <div id="logs-list"></div>
+    </div>
+
+    <div class="log-add">
+      <textarea id="log-update-text" rows="2" placeholder="Add a status update or note…"></textarea>
+      <div style="display:flex;justify-content:flex-end;margin-top:0.5rem;">
+        <button class="btn btn-primary btn-sm" id="btn-submit-log" data-label="Add Log" onclick="submitLogUpdate()">Add Log</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script src="js/maintenance.js"></script>
+</body>
+</html>

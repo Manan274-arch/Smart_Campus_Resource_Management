@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Smart Campus — Dashboard</title>
+  <link rel="stylesheet" href="../css/style.css" />
+  <style>
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+    .stat-card  { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 1.25rem 1.5rem; }
+    .stat-card .stat-label { color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; }
+    .stat-card .stat-value { font-size: 2rem; font-weight: 700; color: var(--accent); margin: 0.25rem 0 0; }
+    .stat-card .stat-sub   { color: var(--text-muted); font-size: 0.78rem; margin-top: 0.1rem; }
+
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+    @media (max-width: 768px) { .two-col { grid-template-columns: 1fr; } }
+
+    .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 1.25rem; }
+    .card-title { font-size: 0.95rem; font-weight: 600; margin-bottom: 1rem; color: var(--text); }
+
+    .resource-list { list-style: none; padding: 0; margin: 0; }
+    .resource-list li { display: flex; align-items: center; justify-content: space-between; padding: 0.55rem 0; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+    .resource-list li:last-child { border-bottom: none; }
+
+    .booking-row { display: flex; align-items: center; justify-content: space-between; padding: 0.55rem 0; border-bottom: 1px solid var(--border); font-size: 0.88rem; }
+    .booking-row:last-child { border-bottom: none; }
+    .booking-row .bk-info { display: flex; flex-direction: column; gap: 2px; }
+    .booking-row .bk-name { font-weight: 500; }
+    .booking-row .bk-meta { color: var(--text-muted); font-size: 0.78rem; }
+
+    .welcome-banner { background: linear-gradient(135deg, var(--accent) 0%, #2c7be5 100%); border-radius: 10px; padding: 1.5rem 2rem; margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center; }
+    .welcome-banner h2 { margin: 0; color: #fff; font-size: 1.3rem; }
+    .welcome-banner p  { margin: 0.25rem 0 0; color: rgba(255,255,255,0.8); font-size: 0.88rem; }
+    .welcome-banner .banner-btn { background: rgba(255,255,255,0.2); color: #fff; border: 1px solid rgba(255,255,255,0.4); padding: 0.45rem 1rem; border-radius: 6px; text-decoration: none; font-size: 0.88rem; white-space: nowrap; }
+    .welcome-banner .banner-btn:hover { background: rgba(255,255,255,0.35); }
+
+    .empty-note { color: var(--text-muted); font-size: 0.88rem; padding: 0.75rem 0; text-align: center; }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="navbar">
+  <div class="nav-brand">🏛 Smart Campus</div>
+  <div class="nav-links">
+    <a href="dashboard.html" class="nav-link active">Dashboard</a>
+    <a href="booking.html"   class="nav-link">Bookings</a>
+    <a href="maintenance.html" class="nav-link">Maintenance</a>
+    <a href="analytics.html" class="nav-link">Analytics</a>
+  </div>
+  <div class="nav-right">
+    <span class="nav-user" id="nav-user">User</span>
+    <button class="btn btn-sm btn-outline" id="btn-logout">Logout</button>
+  </div>
+</nav>
+
+<main class="container">
+
+  <!-- Welcome Banner -->
+  <div class="welcome-banner">
+    <div>
+      <h2>Welcome back, <span id="banner-name">User</span>!</h2>
+      <p id="banner-date">Loading…</p>
+    </div>
+    <a href="booking.html" class="banner-btn">+ New Booking</a>
+  </div>
+
+  <!-- Stats Cards -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-label">My Bookings</div>
+      <div class="stat-value" id="stat-my-bookings">—</div>
+      <div class="stat-sub">Total made</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Pending</div>
+      <div class="stat-value" id="stat-pending">—</div>
+      <div class="stat-sub">Awaiting confirmation</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Resources</div>
+      <div class="stat-value" id="stat-resources">—</div>
+      <div class="stat-sub">Available now</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Open Issues</div>
+      <div class="stat-value" id="stat-open-issues">—</div>
+      <div class="stat-sub">Maintenance pending</div>
+    </div>
+  </div>
+
+  <!-- Two-column section -->
+  <div class="two-col">
+
+    <!-- Recent Bookings -->
+    <div class="card">
+      <div class="card-title">My Recent Bookings</div>
+      <div id="recent-bookings"><p class="empty-note">Loading…</p></div>
+      <a href="booking.html" style="display:block;text-align:right;font-size:0.82rem;color:var(--accent);margin-top:0.75rem;text-decoration:none;">View all →</a>
+    </div>
+
+    <!-- Available Resources -->
+    <div class="card">
+      <div class="card-title">Available Resources</div>
+      <ul class="resource-list" id="resource-list"><li style="color:var(--text-muted);font-size:0.88rem;">Loading…</li></ul>
+      <a href="booking.html" style="display:block;text-align:right;font-size:0.82rem;color:var(--accent);margin-top:0.75rem;text-decoration:none;">Book one →</a>
+    </div>
+
+  </div>
+
+</main>
+
+<div id="toast-container"></div>
+
+<script>
+  const API = "/api";
+  const user = JSON.parse(localStorage.getItem("campus_user") || "null");
+  if (!user) { window.location.href = "index.html"; }
+
+  document.getElementById("nav-user").textContent  = user?.name || user?.email || "User";
+  document.getElementById("banner-name").textContent = user?.name || "User";
+  document.getElementById("banner-date").textContent = new Date().toLocaleDateString("en-IN", { weekday:"long", day:"numeric", month:"long", year:"numeric" });
+
+  document.getElementById("btn-logout").addEventListener("click", () => {
+    localStorage.clear();
+    window.location.href = "index.html";
+  });
+
+  function getToken() { return localStorage.getItem("campus_token") || ""; }
+
+  async function apiFetch(path) {
+    try {
+      const res = await fetch(`${API}${path}`, { headers: { Authorization: `Bearer ${getToken()}` } });
+      if (!res.ok) return null;
+      return await res.json();
+    } catch(e) { return null; }
+  }
+
+  async function loadDashboard() {
+    const [bookings, resources, maintenance] = await Promise.all([
+      apiFetch("/bookings/my"),
+      apiFetch("/resources/"),
+      apiFetch("/maintenance/")
+    ]);
+
+    // Stats
+    const pending = (bookings || []).filter(b => b.status === "pending").length;
+    document.getElementById("stat-my-bookings").textContent = (bookings || []).length;
+    document.getElementById("stat-pending").textContent     = pending;
+    document.getElementById("stat-resources").textContent  = (resources || []).filter(r => r.status === "available").length;
+    document.getElementById("stat-open-issues").textContent = (maintenance || []).filter(m => m.status === "open").length;
+
+    // Recent bookings
+    const rb = document.getElementById("recent-bookings");
+    if (!bookings || bookings.length === 0) {
+      rb.innerHTML = `<p class="empty-note">No bookings yet.</p>`;
+    } else {
+      rb.innerHTML = bookings.slice(0, 5).map(b => `
+        <div class="booking-row">
+          <div class="bk-info">
+            <span class="bk-name">${escHtml(b.resource_name || "Resource #" + b.resource_id)}</span>
+            <span class="bk-meta">${b.date} · ${b.slot_label || "Slot #" + b.slot_id}</span>
+          </div>
+          <span class="badge badge-${statusClass(b.status)}">${b.status}</span>
+        </div>
+      `).join("");
+    }
+
+    // Resource list
+    const rl = document.getElementById("resource-list");
+    if (!resources || resources.length === 0) {
+      rl.innerHTML = `<li><span style="color:var(--text-muted);font-size:0.88rem;">No resources found.</span></li>`;
+    } else {
+      rl.innerHTML = resources.slice(0, 7).map(r => `
+        <li>
+          <span>${escHtml(r.name)}</span>
+          <span class="badge badge-${r.status === 'available' ? 'success' : 'danger'}">${r.status}</span>
+        </li>
+      `).join("");
+    }
+  }
+
+  function statusClass(s) {
+    const m = { confirmed:"success", pending:"warning", cancelled:"danger", resolved:"success", open:"danger", "in-progress":"warning" };
+    return m[(s||"").toLowerCase()] || "neutral";
+  }
+  function escHtml(s) { const d=document.createElement("div"); d.appendChild(document.createTextNode(s||"")); return d.innerHTML; }
+  function showToast(msg,type="info"){const c=document.getElementById("toast-container");const t=document.createElement("div");t.className=`toast toast-${type}`;t.textContent=msg;c.appendChild(t);setTimeout(()=>t.classList.add("show"),10);setTimeout(()=>{t.classList.remove("show");setTimeout(()=>t.remove(),300)},3500);}
+
+  loadDashboard();
+</script>
+</body>
+</html>

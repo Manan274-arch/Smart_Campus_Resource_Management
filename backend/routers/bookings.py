@@ -1,84 +1,147 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from dependencies import get_db, get_current_user
-from datetime import datetime
+from sqlalchemy import and_
+from database import get_db
+from auth import get_current_user
 import models, schemas
 from typing import List
+from datetime import date
 
-router = APIRouter(prefix="/bookings", tags=["Bookings"])
+router = APIRouter(prefix="/api/bookings", tags=["bookings"])
+
+
+def check_availability(db: Session, resource_id: int, slot_id: int, booking_date: date, exclude_booking_id: int = None):
+    """CURSOR-style availability check: iterate bookings for this slot/date."""
+    query = db.query(models.Booking).filter(
+        and_(
+            models.Booking.resource_id == resource_id,
+            models.Booking.slot_id == slot_id,
+            models.Booking.date == booking_date,
+        )
+    )
+    # Exclude current booking if updating
+    if exclude_booking_id:
+        query = query.filter(models.Booking.booking_id != exclude_booking_id)
+
+    # Check booking status — only block on confirmed/pending
+    existing = query.join(models.BookingStatus).filter(
+        models.BookingStatus.status_name.in_(["confirmed", "pending"])
+    ).first()
+    return existing is None  # True = available
+
+
+@router.get("/slots", response_model=List[schemas.TimeSlotOut])
+def get_slots(db: Session = Depends(get_db), _=Depends(get_current_user)):
+    return db.query(models.TimeSlot).all()
+
+
+@router.get("/availability")
+def check_slot_availability(
+    resource_id: int,
+    date: date,
+    db: Session = Depends(get_db),
+    _=Depends(get_current_user)
+):
+    """Return which slots are available for a resource on a date."""
+    slots = db.query(models.TimeSlot).all()
+    result = []
+    for slot in slots:
+        available = check_availability(db, resource_id, slot.slot_id, date)
+        result.append({
+            "slot_id": slot.slot_id,
+            "start_time": slot.start_time,
+            "end_time": slot.end_time,
+            "available": available
+        })
+    return result
+
+
+@router.get("/", response_model=List[schemas.BookingOut])
+def list_bookings(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    # Admin sees all, others see own
+    if current_user.role_id == 1:
+        bookings = db.query(models.Booking).all()
+    else:
+        bookings = db.query(models.Booking).filter(
+            models.Booking.user_id == current_user.user_id
+        ).all()
+
+    result = []
+    for b in bookings:
+        out = schemas.BookingOut.from_orm(b)
+        out.status_name  = b.status.status_name if b.status else None
+        out.resource_name = b.resource.name if b.resource else None
+        out.slot_start   = b.time_slot.start_time if b.time_slot else None
+        out.slot_end     = b.time_slot.end_time if b.time_slot else None
+        result.append(out)
+    return result
 
 
 @router.post("/", response_model=schemas.BookingOut)
-def create_booking(data: schemas.BookingCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-
-    # 1. Check resource exists
+def create_booking(
+    data: schemas.BookingCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    # Check resource exists
     resource = db.query(models.Resource).filter(models.Resource.resource_id == data.resource_id).first()
     if not resource:
         raise HTTPException(status_code=404, detail="Resource not found")
 
-    # 2. Block booking if resource is under maintenance
-    if resource.status == "under_maintenance":
-        raise HTTPException(status_code=400, detail="Resource is under maintenance")
+    # Check resource not under maintenance (Python-level check before DB trigger)
+    if resource.status == "maintenance":
+        raise HTTPException(status_code=400, detail="Resource is currently under maintenance")
 
-    # 3. Check slot exists
-    slot = db.query(models.TimeSlot).filter(models.TimeSlot.slot_id == data.slot_id).first()
-    if not slot:
-        raise HTTPException(status_code=404, detail="Time slot not found")
+    # Check availability
+    if not check_availability(db, data.resource_id, data.slot_id, data.date):
+        raise HTTPException(status_code=409, detail="This slot is already booked for the selected date")
 
-    # 4. Availability check — same resource, same slot, same date, and not cancelled
-    confirmed_status = db.query(models.BookingStatus).filter(models.BookingStatus.status_name == "confirmed").first()
-    conflict = db.query(models.Booking).filter(
-        models.Booking.resource_id == data.resource_id,
-        models.Booking.slot_id == data.slot_id,
-        models.Booking.date == data.date,
-        models.Booking.status_id == confirmed_status.status_id
+    # Get 'confirmed' status
+    confirmed_status = db.query(models.BookingStatus).filter(
+        models.BookingStatus.status_name == "confirmed"
     ).first()
-    if conflict:
-        raise HTTPException(status_code=400, detail="This slot is already booked")
+    if not confirmed_status:
+        raise HTTPException(status_code=500, detail="Booking status not configured")
 
-    # 5. Create the booking
-    new_booking = models.Booking(
+    booking = models.Booking(
         user_id=current_user.user_id,
         resource_id=data.resource_id,
         slot_id=data.slot_id,
         date=data.date,
         status_id=confirmed_status.status_id
     )
-    db.add(new_booking)
+    db.add(booking)
     db.commit()
-    db.refresh(new_booking)
+    db.refresh(booking)
 
-    # 6. Update usage stats
-    stat = db.query(models.ResourceUsageStat).filter(
-        models.ResourceUsageStat.resource_id == data.resource_id
-    ).first()
-    if stat:
-        stat.total_bookings += 1
-        stat.usage_count += 1
-        stat.last_used = datetime.utcnow()
-        db.commit()
-
-    return new_booking
+    out = schemas.BookingOut.from_orm(booking)
+    out.status_name   = booking.status.status_name
+    out.resource_name = booking.resource.name
+    out.slot_start    = booking.time_slot.start_time
+    out.slot_end      = booking.time_slot.end_time
+    return out
 
 
-@router.get("/my", response_model=List[schemas.BookingOut])
-def get_my_bookings(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-    return db.query(models.Booking).filter(models.Booking.user_id == current_user.user_id).all()
-
-
-@router.patch("/{booking_id}/cancel", response_model=schemas.BookingOut)
-def cancel_booking(booking_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-
+@router.delete("/{booking_id}")
+def cancel_booking(
+    booking_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
     booking = db.query(models.Booking).filter(models.Booking.booking_id == booking_id).first()
     if not booking:
         raise HTTPException(status_code=404, detail="Booking not found")
 
-    # Only the owner can cancel their booking
-    if booking.user_id != current_user.user_id:
-        raise HTTPException(status_code=403, detail="Not your booking")
+    # Only owner or admin can cancel
+    if booking.user_id != current_user.user_id and current_user.role_id != 1:
+        raise HTTPException(status_code=403, detail="Not authorized")
 
-    cancelled_status = db.query(models.BookingStatus).filter(models.BookingStatus.status_name == "cancelled").first()
-    booking.status_id = cancelled_status.status_id
+    cancelled = db.query(models.BookingStatus).filter(
+        models.BookingStatus.status_name == "cancelled"
+    ).first()
+    booking.status_id = cancelled.status_id
     db.commit()
-    db.refresh(booking)
-    return booking
+    return {"message": "Booking cancelled"}

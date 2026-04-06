@@ -1,25 +1,31 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from database import engine, Base
-from routers import users, resources, bookings, maintenance, analytics
+import models  # import all models so Base knows about them
 
-app = FastAPI(title="Smart Campus API")
+# Import routers
+from routers import auth, resources, bookings, maintenance, analytics
 
-# CORS — allows your HTML frontend (opened from a file or local server)
-# to make requests to this FastAPI backend without being blocked by the browser
+# Create all tables
+Base.metadata.create_all(bind=engine)
+
+app = FastAPI(
+    title="Smart Campus Resource Management",
+    description="API for managing campus resources, bookings, and maintenance",
+    version="1.0.0"
+)
+
+# CORS — allow frontend (served from file:// or localhost)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, replace * with your actual frontend URL
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# This creates all tables in campus.db on startup if they don't exist yet
-Base.metadata.create_all(bind=engine)
-
-# Register all routers
-app.include_router(users.router)
+# Register routers
+app.include_router(auth.router)
 app.include_router(resources.router)
 app.include_router(bookings.router)
 app.include_router(maintenance.router)
@@ -28,4 +34,9 @@ app.include_router(analytics.router)
 
 @app.get("/")
 def root():
-    return {"message": "Smart Campus API is running"}
+    return {"message": "Smart Campus API is running", "docs": "/docs"}
+
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
