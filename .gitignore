@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+venv/
+.env
+campus.db
+node_modules/
