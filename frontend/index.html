@@ -3,211 +3,534 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Smart Campus — Login</title>
-  <link rel="stylesheet" href="../css/style.css" />
+  <title>Smart Campus — Sign In</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
   <style>
-    /* ── Page-specific layout ── */
-    body { background: var(--bg-dark); display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0c0e12;
+      --surface: #13161c;
+      --surface2: #1a1e27;
+      --border: rgba(255,255,255,0.07);
+      --border-hover: rgba(255,255,255,0.14);
+      --accent: #5b7fff;
+      --accent-glow: rgba(91,127,255,0.18);
+      --accent-dim: rgba(91,127,255,0.12);
+      --text: #f0f2f7;
+      --text-muted: #6b7280;
+      --text-dim: #9ca3af;
+      --success: #22c55e;
+      --danger: #f87171;
+      --serif: 'Instrument Serif', Georgia, serif;
+      --sans: 'DM Sans', sans-serif;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      font-family: var(--sans);
+      color: var(--text);
+    }
+
+    body {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      min-height: 100vh;
+    }
+
+    /* ── LEFT PANEL ── */
+    .left-panel {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 48px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .left-panel::before {
+      content: '';
+      position: absolute;
+      top: -120px;
+      left: -120px;
+      width: 480px;
+      height: 480px;
+      background: radial-gradient(circle, rgba(91,127,255,0.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .left-panel::after {
+      content: '';
+      position: absolute;
+      bottom: 80px;
+      right: -60px;
+      width: 300px;
+      height: 300px;
+      background: radial-gradient(circle, rgba(91,127,255,0.05) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .brand-icon {
+      width: 32px;
+      height: 32px;
+      background: var(--accent);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .brand-icon svg {
+      width: 16px;
+      height: 16px;
+      stroke: white;
+      fill: none;
+      stroke-width: 2;
+    }
+
+    .brand-name {
+      font-size: 15px;
+      font-weight: 500;
+      letter-spacing: -0.01em;
+    }
+
+    .left-content {
+      position: relative;
+      z-index: 1;
+    }
+
+    .left-content h1 {
+      font-family: var(--serif);
+      font-size: 52px;
+      line-height: 1.1;
+      font-weight: 400;
+      color: var(--text);
+      letter-spacing: -0.02em;
+      margin-bottom: 20px;
+    }
+
+    .left-content h1 em {
+      font-style: italic;
+      color: var(--accent);
+    }
+
+    .left-content p {
+      font-size: 15px;
+      color: var(--text-dim);
+      line-height: 1.65;
+      max-width: 340px;
+      font-weight: 300;
+    }
+
+    .stats-row {
+      display: flex;
+      gap: 32px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .stat {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .stat-number {
+      font-family: var(--serif);
+      font-size: 28px;
+      color: var(--text);
+      letter-spacing: -0.02em;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 400;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    /* ── RIGHT PANEL ── */
+    .right-panel {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 48px 56px;
+    }
 
     .auth-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 12px;
       width: 100%;
-      max-width: 420px;
-      padding: 2.5rem;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      max-width: 400px;
     }
 
-    .auth-logo {
-      text-align: center;
-      margin-bottom: 1.75rem;
+    .auth-header {
+      margin-bottom: 36px;
     }
-    .auth-logo h1 { font-size: 1.6rem; color: var(--accent); margin: 0; }
-    .auth-logo p  { color: var(--text-muted); font-size: 0.85rem; margin: 0.25rem 0 0; }
 
-    .tab-row {
+    .auth-header h2 {
+      font-family: var(--serif);
+      font-size: 32px;
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      margin-bottom: 6px;
+    }
+
+    .auth-header p {
+      font-size: 14px;
+      color: var(--text-muted);
+      font-weight: 300;
+    }
+
+    /* TABS */
+    .tabs {
       display: flex;
-      border-bottom: 1px solid var(--border);
-      margin-bottom: 1.75rem;
+      gap: 0;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 3px;
+      margin-bottom: 28px;
     }
-    .tab-btn {
+
+    .tab {
       flex: 1;
-      padding: 0.6rem;
-      background: none;
+      padding: 8px 0;
+      font-size: 13.5px;
+      font-weight: 400;
+      font-family: var(--sans);
+      background: transparent;
       border: none;
       color: var(--text-muted);
-      font-size: 0.95rem;
+      border-radius: 7px;
       cursor: pointer;
-      border-bottom: 2px solid transparent;
-      transition: all 0.2s;
+      transition: all 0.2s ease;
     }
-    .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
 
-    .tab-panel { display: none; }
-    .tab-panel.active { display: block; }
+    .tab.active {
+      background: var(--surface2);
+      color: var(--text);
+      font-weight: 500;
+    }
 
-    .form-group { margin-bottom: 1rem; }
-    .form-group label { display: block; color: var(--text-muted); font-size: 0.82rem; margin-bottom: 0.35rem; text-transform: uppercase; letter-spacing: 0.05em; }
-    .form-group input,
-    .form-group select { width: 100%; padding: 0.65rem 0.85rem; background: var(--bg-input); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 0.95rem; box-sizing: border-box; transition: border-color 0.2s; }
-    .form-group input:focus,
-    .form-group select:focus { outline: none; border-color: var(--accent); }
+    /* FORM */
+    .form-group {
+      margin-bottom: 16px;
+    }
 
-    .btn-full { width: 100%; margin-top: 0.5rem; }
-    .auth-error { color: var(--danger); font-size: 0.85rem; margin-top: 0.5rem; min-height: 1.2em; }
+    label {
+      display: block;
+      font-size: 12.5px;
+      font-weight: 500;
+      color: var(--text-dim);
+      margin-bottom: 6px;
+      letter-spacing: 0.02em;
+    }
+
+    input, select {
+      width: 100%;
+      height: 44px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0 14px;
+      font-size: 14px;
+      font-family: var(--sans);
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.18s ease, box-shadow 0.18s ease;
+      -webkit-appearance: none;
+    }
+
+    select {
+      cursor: pointer;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      padding-right: 36px;
+    }
+
+    select option { background: #1a1e27; }
+
+    input::placeholder { color: var(--text-muted); font-weight: 300; }
+
+    input:hover, select:hover { border-color: var(--border-hover); }
+
+    input:focus, select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-dim);
+    }
+
+    /* BUTTON */
+    .btn-primary {
+      width: 100%;
+      height: 46px;
+      background: var(--accent);
+      border: none;
+      border-radius: 8px;
+      color: white;
+      font-size: 14px;
+      font-weight: 500;
+      font-family: var(--sans);
+      cursor: pointer;
+      margin-top: 8px;
+      transition: all 0.18s ease;
+      letter-spacing: 0.01em;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn-primary::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: rgba(255,255,255,0);
+      transition: background 0.18s;
+    }
+
+    .btn-primary:hover::after { background: rgba(255,255,255,0.08); }
+    .btn-primary:active { transform: scale(0.99); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    /* ALERTS */
+    .alert {
+      font-size: 13px;
+      border-radius: 7px;
+      padding: 0;
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.25s ease, padding 0.25s ease, margin 0.25s ease;
+      margin: 0;
+    }
+
+    .alert.show {
+      padding: 10px 12px;
+      max-height: 80px;
+      margin-bottom: 12px;
+    }
+
+    .alert-error.show {
+      background: rgba(248,113,113,0.1);
+      border: 1px solid rgba(248,113,113,0.2);
+      color: var(--danger);
+    }
+
+    .alert-success.show {
+      background: rgba(34,197,94,0.1);
+      border: 1px solid rgba(34,197,94,0.2);
+      color: var(--success);
+    }
+
+    /* DIVIDER */
+    .hint {
+      margin-top: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .hint::before, .hint::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .hidden { display: none; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 768px) {
+      body { grid-template-columns: 1fr; }
+
+      .left-panel {
+        padding: 32px 28px 28px;
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .left-content h1 { font-size: 36px; }
+      .stats-row { gap: 24px; }
+
+      .right-panel { padding: 32px 28px; }
+    }
+
+    /* ── ANIMATION ── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .auth-card { animation: fadeUp 0.4s ease both; }
+    .left-content { animation: fadeUp 0.45s ease 0.1s both; }
   </style>
 </head>
 <body>
 
-<div class="auth-card">
-  <div class="auth-logo">
-    <h1>🏛 Smart Campus</h1>
-    <p>Resource Management System</p>
+  <!-- LEFT PANEL -->
+  <div class="left-panel">
+    <div class="brand">
+      <div class="brand-icon">
+        <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      </div>
+      <span class="brand-name">Smart Campus</span>
+    </div>
+
+    <div class="left-content">
+      <h1>Manage your<br><em>campus</em><br>resources.</h1>
+      <p>One platform for booking, analytics, maintenance, and everything in between. Built for the modern campus.</p>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat">
+        <span class="stat-number">12k+</span>
+        <span class="stat-label">Bookings</span>
+      </div>
+      <div class="stat">
+        <span class="stat-number">340</span>
+        <span class="stat-label">Resources</span>
+      </div>
+      <div class="stat">
+        <span class="stat-number">98%</span>
+        <span class="stat-label">Uptime</span>
+      </div>
+    </div>
   </div>
 
-  <div class="tab-row">
-    <button class="tab-btn active" onclick="switchTab('login')">Login</button>
-    <button class="tab-btn" onclick="switchTab('signup')">Register</button>
-  </div>
+  <!-- RIGHT PANEL -->
+  <div class="right-panel">
+    <div class="auth-card">
 
-  <!-- LOGIN PANEL -->
-  <div id="panel-login" class="tab-panel active">
-    <div class="form-group">
-      <label>Email</label>
-      <input type="email" id="login-email" placeholder="you@campus.edu" autocomplete="email" />
-    </div>
-    <div class="form-group">
-      <label>Password</label>
-      <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password" />
-    </div>
-    <p class="auth-error" id="login-error"></p>
-    <button class="btn btn-primary btn-full" id="btn-login" data-label="Login" onclick="doLogin()">Login</button>
-  </div>
+      <div class="auth-header">
+        <h2 id="panel-title">Welcome back</h2>
+        <p id="panel-sub">Sign in to your campus account</p>
+      </div>
 
-  <!-- SIGNUP PANEL -->
-  <div id="panel-signup" class="tab-panel">
-    <div class="form-group">
-      <label>Full Name</label>
-      <input type="text" id="reg-name" placeholder="Jane Smith" />
-    </div>
-    <div class="form-group">
-      <label>Email</label>
-      <input type="email" id="reg-email" placeholder="you@campus.edu" />
-    </div>
-    <div class="form-group">
-      <label>Password</label>
-      <input type="password" id="reg-password" placeholder="Min. 6 characters" />
-    </div>
-    <div class="form-group">
-      <label>Role</label>
-      <select id="reg-role">
-        <option value="2">Student</option>
-        <option value="3">Faculty</option>
-      </select>
-    </div>
-    <p class="auth-error" id="reg-error"></p>
-    <button class="btn btn-primary btn-full" id="btn-register" data-label="Create Account" onclick="doRegister()">Create Account</button>
-  </div>
-</div>
+      <div class="tabs">
+        <button class="tab active" id="tab-login" onclick="switchTab('login')">Sign In</button>
+        <button class="tab" id="tab-register" onclick="switchTab('register')">Register</button>
+      </div>
 
-<div id="toast-container"></div>
+      <!-- LOGIN -->
+      <div id="panel-login">
+        <div class="form-group">
+          <label for="login-email">Email</label>
+          <input type="email" id="login-email" placeholder="you@campus.edu" autocomplete="email" />
+        </div>
+        <div class="form-group">
+          <label for="login-password">Password</label>
+          <input type="password" id="login-password" placeholder="Enter your password" />
+        </div>
+        <div class="alert alert-error" id="login-error"></div>
+        <button class="btn-primary" id="btn-login" onclick="doLogin()">Sign In</button>
+        <div class="hint">test credentials</div>
+        <div style="text-align:center;font-size:12px;color:var(--text-muted);margin-top:4px;">admin@campus.edu &nbsp;/&nbsp; admin123</div>
+      </div>
+
+      <!-- REGISTER -->
+      <div id="panel-register" class="hidden">
+        <div class="form-group">
+          <label for="reg-name">Full Name</label>
+          <input type="text" id="reg-name" placeholder="Your full name" />
+        </div>
+        <div class="form-group">
+          <label for="reg-email">Email</label>
+          <input type="email" id="reg-email" placeholder="you@campus.edu" />
+        </div>
+        <div class="form-group">
+          <label for="reg-password">Password</label>
+          <input type="password" id="reg-password" placeholder="Minimum 6 characters" />
+        </div>
+        <div class="form-group">
+          <label for="reg-role">Role</label>
+          <select id="reg-role">
+            <option value="2">Student</option>
+            <option value="3">Faculty</option>
+            <option value="4">Staff</option>
+          </select>
+        </div>
+        <div class="alert alert-error" id="reg-error"></div>
+        <div class="alert alert-success" id="reg-success"></div>
+        <button class="btn-primary" id="btn-register" onclick="doRegister()">Create Account</button>
+      </div>
+
+    </div>
+  </div>
 
 <script>
   const API = "http://127.0.0.1:8000/api";
-
-  // Check if already logged in
-  if (localStorage.getItem("campus_token")) {
-    window.location.href = "dashboard.html";
-  }
+  if (localStorage.getItem("campus_token")) window.location.href = "dashboard.html";
 
   function switchTab(tab) {
-    document.querySelectorAll(".tab-btn").forEach((b, i) => {
-      b.classList.toggle("active", (i === 0 && tab === "login") || (i === 1 && tab === "signup"));
-    });
-    document.getElementById("panel-login").classList.toggle("active", tab === "login");
-    document.getElementById("panel-signup").classList.toggle("active", tab === "signup");
+    const isLogin = tab === "login";
+    document.getElementById("tab-login").classList.toggle("active", isLogin);
+    document.getElementById("tab-register").classList.toggle("active", !isLogin);
+    document.getElementById("panel-login").classList.toggle("hidden", !isLogin);
+    document.getElementById("panel-register").classList.toggle("hidden", isLogin);
+    document.getElementById("panel-title").textContent = isLogin ? "Welcome back" : "Create account";
+    document.getElementById("panel-sub").textContent = isLogin ? "Sign in to your campus account" : "Join your campus platform";
   }
 
+  function showAlert(id, msg) { const e = document.getElementById(id); e.textContent = msg; e.classList.add("show"); }
+  function hideAlert(id)      { const e = document.getElementById(id); e.textContent = "";  e.classList.remove("show"); }
+
   async function doLogin() {
+    hideAlert("login-error");
     const email    = document.getElementById("login-email").value.trim();
     const password = document.getElementById("login-password").value;
-    const errEl    = document.getElementById("login-error");
-    errEl.textContent = "";
-
-    if (!email || !password) { errEl.textContent = "All fields required."; return; }
-
+    if (!email || !password) { showAlert("login-error", "All fields are required."); return; }
     const btn = document.getElementById("btn-login");
-    btn.disabled = true; btn.textContent = "Logging in…";
-
+    btn.disabled = true; btn.textContent = "Signing in…";
     try {
-      const res = await fetch(`${API}/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password })
-      });
+      const res  = await fetch(`${API}/auth/login`, { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({email, password}) });
       const data = await res.json();
-      if (!res.ok) { errEl.textContent = data.detail || "Login failed."; return; }
-
+      if (!res.ok) { showAlert("login-error", data.detail || "Login failed."); return; }
       localStorage.setItem("campus_token", data.access_token);
       localStorage.setItem("campus_user", JSON.stringify({ user_id: data.user_id, role_id: data.role_id, email, name: data.name || email.split("@")[0] }));
       window.location.href = "dashboard.html";
     } catch(e) {
-      errEl.textContent = "Network error.";
-    } finally {
-      btn.disabled = false; btn.textContent = "Login";
-    }
+      showAlert("login-error", "Cannot reach server. Is the backend running?");
+    } finally { btn.disabled = false; btn.textContent = "Sign In"; }
   }
 
   async function doRegister() {
+    hideAlert("reg-error"); hideAlert("reg-success");
     const name     = document.getElementById("reg-name").value.trim();
     const email    = document.getElementById("reg-email").value.trim();
     const password = document.getElementById("reg-password").value;
     const role_id  = parseInt(document.getElementById("reg-role").value);
-    const errEl    = document.getElementById("reg-error");
-    errEl.textContent = "";
-
-    if (!name || !email || !password) { errEl.textContent = "All fields required."; return; }
-    if (password.length < 6)          { errEl.textContent = "Password must be at least 6 characters."; return; }
-
+    if (!name || !email || !password) { showAlert("reg-error", "All fields are required."); return; }
+    if (password.length < 6)          { showAlert("reg-error", "Password must be at least 6 characters."); return; }
     const btn = document.getElementById("btn-register");
-    btn.disabled = true; btn.textContent = "Creating account…";
-
+    btn.disabled = true; btn.textContent = "Creating…";
     try {
-      const res = await fetch(`${API}/auth/register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password, role_id })
-      });
+      const res  = await fetch(`${API}/auth/register`, { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({name, email, password, role_id}) });
       const data = await res.json();
-      if (!res.ok) { errEl.textContent = data.detail || "Registration failed."; return; }
-      showToast("Account created! Please log in.", "success");
-      switchTab("login");
-      document.getElementById("login-email").value = email;
+      if (!res.ok) { showAlert("reg-error", data.detail || "Registration failed."); return; }
+      showAlert("reg-success", "Account created! Redirecting to login…");
+      setTimeout(() => { switchTab("login"); document.getElementById("login-email").value = email; }, 1500);
     } catch(e) {
-      errEl.textContent = "Network error.";
-    } finally {
-      btn.disabled = false; btn.textContent = "Create Account";
-    }
+      showAlert("reg-error", "Cannot reach server.");
+    } finally { btn.disabled = false; btn.textContent = "Create Account"; }
   }
 
-  // Allow Enter key to submit
   document.addEventListener("keydown", e => {
     if (e.key !== "Enter") return;
-    const active = document.querySelector(".tab-panel.active")?.id;
-    if (active === "panel-login")  doLogin();
-    if (active === "panel-signup") doRegister();
+    document.getElementById("panel-login").classList.contains("hidden") ? doRegister() : doLogin();
   });
-
-  function showToast(msg, type = "info") {
-    const c = document.getElementById("toast-container");
-    const t = document.createElement("div");
-    t.className = `toast toast-${type}`;
-    t.textContent = msg;
-    c.appendChild(t);
-    setTimeout(() => t.classList.add("show"), 10);
-    setTimeout(() => { t.classList.remove("show"); setTimeout(() => t.remove(), 300); }, 3500);
-  }
 </script>
 </body>
 </html>

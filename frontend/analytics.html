@@ -4,42 +4,298 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Smart Campus — Analytics</title>
-  <link rel="stylesheet" href="../css/style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
   <style>
-    .kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1rem; margin-bottom: 1.75rem; }
-    .kpi { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 1.1rem 1.3rem; }
-    .kpi .kpi-val  { font-size: 1.9rem; font-weight: 700; color: var(--accent); }
-    .kpi .kpi-lbl  { color: var(--text-muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 0.2rem; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+    :root {
+      --bg:           #0c0e12;
+      --surface:      #13161c;
+      --surface2:     #1a1e27;
+      --border:       rgba(255,255,255,0.07);
+      --border-hover: rgba(255,255,255,0.14);
+      --accent:       #5b7fff;
+      --accent-glow:  rgba(91,127,255,0.18);
+      --accent-dim:   rgba(91,127,255,0.12);
+      --text:         #f0f2f7;
+      --text-muted:   #6b7280;
+      --text-dim:     #9ca3af;
+      --success:      #22c55e;
+      --warning:      #f59e0b;
+      --danger:       #f87171;
+      --serif:        'Instrument Serif', Georgia, serif;
+      --sans:         'DM Sans', sans-serif;
+    }
+
+    html, body {
+      min-height: 100%;
+      background: var(--bg);
+      font-family: var(--sans);
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── NAVBAR ── */
+    .navbar {
+      height: 52px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 28px;
+      gap: 4px;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text);
+      text-decoration: none;
+      margin-right: 12px;
+      letter-spacing: -0.01em;
+    }
+
+    .nav-brand-icon {
+      width: 26px;
+      height: 26px;
+      background: var(--accent);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .nav-brand-icon svg { width: 13px; height: 13px; stroke: #fff; fill: none; stroke-width: 2; }
+
+    .nav-links { display: flex; align-items: center; gap: 2px; }
+    .nav-link {
+      font-size: 13px;
+      color: var(--text-muted);
+      text-decoration: none;
+      padding: 5px 11px;
+      border-radius: 7px;
+      transition: color 0.15s, background 0.15s;
+      font-weight: 400;
+    }
+    .nav-link:hover { color: var(--text); background: var(--surface2); }
+    .nav-link.active { color: var(--text); background: var(--surface2); }
+
+    .nav-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+    .nav-user { font-size: 13px; color: var(--text-dim); font-weight: 300; }
+
+    /* ── BUTTONS ── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      border-radius: 8px;
+      font-family: var(--sans);
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.18s ease;
+      text-decoration: none;
+      border: none;
+      white-space: nowrap;
+    }
+    .btn-primary { background: var(--accent); color: #fff; font-size: 13.5px; padding: 8px 18px; height: 36px; }
+    .btn-primary:hover { opacity: 0.88; }
+    .btn-outline { background: transparent; color: var(--text-dim); font-size: 13px; padding: 7px 16px; height: 34px; border: 1px solid var(--border-hover); }
+    .btn-outline:hover { color: var(--text); border-color: rgba(255,255,255,0.24); background: var(--surface2); }
+    .btn-sm { font-size: 12.5px; padding: 5px 13px; height: 30px; border-radius: 7px; }
+
+    /* ── CONTAINER ── */
+    .container { max-width: 1140px; margin: 0 auto; padding: 32px 28px; }
+
+    /* ── PAGE HEADER ROW ── */
+    .page-header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+
+    .page-header-row h2 {
+      font-family: var(--serif);
+      font-size: 28px;
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      color: var(--text);
+      line-height: 1.2;
+      margin: 0;
+    }
+    .page-header-row p { font-size: 13px; color: var(--text-muted); margin-top: 4px; font-weight: 300; }
+
+    /* ── DATE FILTER ── */
+    .date-filter {
+      display: flex;
+      gap: 0.6rem;
+      align-items: center;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+    }
+    .date-filter label { color: var(--text-muted); font-size: 12.5px; font-weight: 500; letter-spacing: 0.03em; }
+    .date-filter select {
+      height: 34px;
+      padding: 0 28px 0 10px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      color: var(--text);
+      font-size: 12.5px;
+      font-family: var(--sans);
+      outline: none;
+      cursor: pointer;
+      transition: border-color 0.15s;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+    }
+    .date-filter select option { background: var(--surface2); }
+    .date-filter select:focus { border-color: var(--accent); }
+
+    /* ── KPI CARDS ── */
+    .kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1rem; margin-bottom: 1.75rem; }
+
+    .kpi {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.1rem 1.3rem;
+      transition: border-color 0.2s;
+    }
+    .kpi:hover { border-color: var(--border-hover); }
+
+    .kpi-val {
+      font-family: var(--serif);
+      font-size: 2rem;
+      font-weight: 400;
+      color: var(--accent);
+      letter-spacing: -0.02em;
+      line-height: 1;
+    }
+    .kpi-lbl { color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; margin-top: 6px; }
+
+    /* ── CHARTS GRID ── */
     .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-bottom: 1.75rem; }
     @media (max-width: 900px) { .charts-grid { grid-template-columns: 1fr; } }
 
-    .chart-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 1.25rem; }
-    .chart-card h4 { margin: 0 0 1rem; font-size: 0.95rem; color: var(--text); }
+    .chart-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem;
+      transition: border-color 0.2s;
+    }
+    .chart-card:hover { border-color: var(--border-hover); }
+
+    .chart-card h4 {
+      margin: 0 0 1rem;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
     .chart-wrap { position: relative; height: 220px; }
 
-    .data-table { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-bottom: 1.25rem; }
-    .data-table h4 { margin: 0; font-size: 0.95rem; padding: 1rem 1.25rem; border-bottom: 1px solid var(--border); }
-    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
-    th { padding: 0.6rem 1rem; color: var(--text-muted); font-weight: 500; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border); text-align: left; }
-    td { padding: 0.65rem 1rem; border-bottom: 1px solid var(--border); color: var(--text); }
-    tr:last-child td { border-bottom: none; }
-    tr:hover td { background: var(--bg-hover); }
+    /* ── DATA TABLES ── */
+    .data-table {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 1.25rem;
+    }
 
-    .bar-inline { height: 6px; border-radius: 3px; background: var(--accent); margin-top: 4px; }
+    .data-table-header {
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .data-table-header h4 {
+      font-family: var(--serif);
+      font-size: 18px;
+      font-weight: 400;
+      letter-spacing: -0.01em;
+      margin: 0;
+      color: var(--text);
+    }
 
-    .date-filter { display: flex; gap: 0.6rem; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; }
-    .date-filter label { color: var(--text-muted); font-size: 0.85rem; }
-    .date-filter input { padding: 0.4rem 0.7rem; background: var(--bg-input); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 0.85rem; }
-    .date-filter select { padding: 0.4rem 0.7rem; background: var(--bg-input); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 0.85rem; }
+    /* ── TABLE ── */
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+
+    thead th {
+      text-align: left;
+      padding: 10px 16px;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+
+    tbody td {
+      padding: 11px 16px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+      vertical-align: middle;
+    }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover td { background: rgba(255,255,255,0.03); }
+
+    /* ── INLINE BAR ── */
+    .bar-inline { height: 5px; border-radius: 3px; background: var(--accent); margin-top: 4px; opacity: 0.7; }
+
+    /* ── TOASTS ── */
+    #toast-container { position: fixed; bottom: 24px; right: 24px; display: flex; flex-direction: column; gap: 8px; z-index: 9999; }
+    .toast { padding: 10px 16px; border-radius: 8px; font-size: 13px; font-family: var(--sans); opacity: 0; transform: translateY(8px); transition: opacity 0.22s ease, transform 0.22s ease; max-width: 320px; }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .toast-success { background: rgba(34,197,94,0.15);  border: 1px solid rgba(34,197,94,0.3);  color: #22c55e; }
+    .toast-error   { background: rgba(248,113,113,0.15);border: 1px solid rgba(248,113,113,0.3);color: #f87171; }
+    .toast-info    { background: var(--surface2); border: 1px solid var(--border-hover); color: var(--text-dim); }
+
+    .hidden { display: none !important; }
+
+    @media (max-width: 768px) {
+      .container { padding: 24px 16px; }
+      .navbar { padding: 0 16px; }
+      .nav-links { display: none; }
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .container { animation: fadeUp 0.35s ease both; }
   </style>
 </head>
 <body>
 
 <!-- NAV -->
 <nav class="navbar">
-  <div class="nav-brand">🏛 Smart Campus</div>
+  <div class="nav-brand">
+    <div class="nav-brand-icon">
+      <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    </div>
+    Smart Campus
+  </div>
   <div class="nav-links">
     <a href="dashboard.html"   class="nav-link">Dashboard</a>
     <a href="booking.html"     class="nav-link">Bookings</a>
@@ -48,22 +304,23 @@
   </div>
   <div class="nav-right">
     <span class="nav-user" id="nav-user">User</span>
-    <button class="btn btn-sm btn-outline" id="btn-logout">Logout</button>
+    <button class="btn btn-outline btn-sm" id="btn-logout">Logout</button>
   </div>
 </nav>
 
 <main class="container">
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;flex-wrap:wrap;gap:0.75rem;">
+
+  <div class="page-header-row">
     <div>
-      <h2 style="margin:0;font-size:1.25rem;">Analytics</h2>
-      <p style="margin:0.25rem 0 0;color:var(--text-muted);font-size:0.88rem;">Resource usage and booking insights.</p>
+      <h2>Analytics</h2>
+      <p>Resource usage and booking insights.</p>
     </div>
     <button class="btn btn-outline btn-sm" onclick="loadAll()">↺ Refresh</button>
   </div>
 
-  <!-- Quick filter -->
+  <!-- Period filter -->
   <div class="date-filter">
-    <label>Period:</label>
+    <label>Period</label>
     <select id="period-sel" onchange="loadAll()">
       <option value="7">Last 7 days</option>
       <option value="30" selected>Last 30 days</option>
@@ -102,21 +359,26 @@
 
   <!-- Top Resources Table -->
   <div class="data-table">
-    <h4>Top Resources by Usage</h4>
+    <div class="data-table-header"><h4>Top Resources by Usage</h4></div>
     <table>
-      <thead><tr><th>#</th><th>Resource</th><th>Type</th><th>Total Bookings</th><th>Usage Bar</th><th>Last Used</th></tr></thead>
-      <tbody id="top-resources-tbody"><tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:1.5rem;">Loading…</td></tr></tbody>
+      <thead><tr><th>#</th><th>Resource</th><th>Type</th><th>Total Bookings</th><th>Usage</th><th>Last Used</th></tr></thead>
+      <tbody id="top-resources-tbody">
+        <tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:2rem;font-weight:300;">Loading…</td></tr>
+      </tbody>
     </table>
   </div>
 
   <!-- Top Users Table (Admin only) -->
   <div class="data-table" id="top-users-section" style="display:none;">
-    <h4>Top Users by Bookings</h4>
+    <div class="data-table-header"><h4>Top Users by Bookings</h4></div>
     <table>
       <thead><tr><th>#</th><th>User</th><th>Role</th><th>Bookings</th><th>Confirmed</th><th>Cancelled</th></tr></thead>
-      <tbody id="top-users-tbody"><tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:1.5rem;">Loading…</td></tr></tbody>
+      <tbody id="top-users-tbody">
+        <tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:2rem;font-weight:300;">Loading…</td></tr>
+      </tbody>
     </table>
   </div>
+
 </main>
 
 <div id="toast-container"></div>
@@ -129,6 +391,12 @@
   document.getElementById("btn-logout").addEventListener("click", () => { localStorage.clear(); window.location.href = "index.html"; });
 
   if (user?.role_id === 1) document.getElementById("top-users-section").style.display = "";
+
+  // Chart.js global defaults to match the dark theme
+  Chart.defaults.color = "#6b7280";
+  Chart.defaults.borderColor = "rgba(255,255,255,0.06)";
+  Chart.defaults.font.family = "'DM Sans', sans-serif";
+  Chart.defaults.font.size = 12;
 
   let charts = {};
 
@@ -180,9 +448,9 @@
       type: "doughnut",
       data: {
         labels: ["Confirmed", "Pending", "Cancelled"],
-        datasets: [{ data: [data.confirmed||0, data.pending||0, data.cancelled||0], backgroundColor: ["#22c55e","#f59e0b","#ef4444"], borderWidth: 0 }]
+        datasets: [{ data: [data.confirmed||0, data.pending||0, data.cancelled||0], backgroundColor: ["#22c55e","#f59e0b","#ef4444"], borderWidth: 0, hoverOffset: 4 }]
       },
-      options: { plugins: { legend: { position: "bottom", labels: { color: "#94a3b8", font: { size: 12 } } } }, cutout: "60%" }
+      options: { plugins: { legend: { position: "bottom", labels: { color: "#6b7280", font: { size: 12 }, padding: 16 } } }, cutout: "62%" }
     });
   }
 
@@ -194,11 +462,24 @@
       type: "line",
       data: {
         labels: trend.map(d => d.date),
-        datasets: [{ label: "Bookings", data: trend.map(d => d.count), borderColor: "#3b82f6", backgroundColor: "rgba(59,130,246,0.1)", fill: true, tension: 0.4, pointRadius: 3 }]
+        datasets: [{
+          label: "Bookings",
+          data: trend.map(d => d.count),
+          borderColor: "#5b7fff",
+          backgroundColor: "rgba(91,127,255,0.08)",
+          fill: true,
+          tension: 0.4,
+          pointRadius: 3,
+          pointBackgroundColor: "#5b7fff",
+          borderWidth: 2
+        }]
       },
       options: {
         plugins: { legend: { display: false } },
-        scales: { x: { ticks: { color: "#64748b", maxTicksLimit: 7 }, grid: { color: "#1e293b" } }, y: { ticks: { color: "#64748b" }, grid: { color: "#1e293b" }, beginAtZero: true } }
+        scales: {
+          x: { ticks: { color: "#6b7280", maxTicksLimit: 7 }, grid: { color: "rgba(255,255,255,0.04)" } },
+          y: { ticks: { color: "#6b7280" }, grid: { color: "rgba(255,255,255,0.04)" }, beginAtZero: true }
+        }
       }
     });
   }
@@ -207,23 +488,24 @@
     const ctx = document.getElementById("chart-type");
     if (!ctx || !usage || !usage.length) return;
     destroyChart("type");
-
-    // Aggregate by type_name
     const byType = {};
     usage.forEach(r => { byType[r.type_name] = (byType[r.type_name] || 0) + (r.total_bookings || 0); });
     const labels = Object.keys(byType);
     const vals   = labels.map(l => byType[l]);
-    const colors = ["#3b82f6","#8b5cf6","#f59e0b","#ef4444","#22c55e","#06b6d4"];
+    const colors = ["#5b7fff","#8b5cf6","#f59e0b","#ef4444","#22c55e","#06b6d4"];
 
     charts.type = new Chart(ctx, {
       type: "bar",
       data: {
         labels,
-        datasets: [{ label: "Bookings", data: vals, backgroundColor: colors.slice(0, labels.length), borderRadius: 6 }]
+        datasets: [{ label: "Bookings", data: vals, backgroundColor: colors.slice(0, labels.length), borderRadius: 5, borderSkipped: false }]
       },
       options: {
         plugins: { legend: { display: false } },
-        scales: { x: { ticks: { color: "#64748b" }, grid: { display: false } }, y: { ticks: { color: "#64748b" }, grid: { color: "#1e293b" }, beginAtZero: true } }
+        scales: {
+          x: { ticks: { color: "#6b7280" }, grid: { display: false } },
+          y: { ticks: { color: "#6b7280" }, grid: { color: "rgba(255,255,255,0.04)" }, beginAtZero: true }
+        }
       }
     });
   }
@@ -238,39 +520,39 @@
       type: "doughnut",
       data: {
         labels: ["Open", "In Progress", "Resolved", "Closed"],
-        datasets: [{ data: [counts.open, counts["in-progress"], counts.resolved, counts.closed], backgroundColor: ["#ef4444","#f59e0b","#22c55e","#64748b"], borderWidth: 0 }]
+        datasets: [{ data: [counts.open, counts["in-progress"], counts.resolved, counts.closed], backgroundColor: ["#f87171","#f59e0b","#22c55e","#4b5563"], borderWidth: 0, hoverOffset: 4 }]
       },
-      options: { plugins: { legend: { position: "bottom", labels: { color: "#94a3b8", font: { size: 12 } } } }, cutout: "60%" }
+      options: { plugins: { legend: { position: "bottom", labels: { color: "#6b7280", font: { size: 12 }, padding: 16 } } }, cutout: "62%" }
     });
   }
 
   function renderTopResources(usage) {
     const tbody = document.getElementById("top-resources-tbody");
-    if (!usage || !usage.length) { tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:1.5rem;">No data.</td></tr>`; return; }
+    if (!usage || !usage.length) { tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:2rem;font-weight:300;">No data.</td></tr>`; return; }
     const maxBookings = Math.max(...usage.map(r => r.total_bookings || 0), 1);
     tbody.innerHTML = usage.slice(0, 10).map((r, i) => `
       <tr>
-        <td style="color:var(--text-muted)">${i+1}</td>
+        <td style="color:var(--text-muted);font-size:12px">${i+1}</td>
         <td>${escHtml(r.name)}</td>
-        <td><span style="color:var(--text-muted);font-size:0.82rem">${escHtml(r.type_name||"—")}</span></td>
+        <td><span style="color:var(--text-muted);font-size:12px">${escHtml(r.type_name||"—")}</span></td>
         <td><strong>${r.total_bookings || 0}</strong></td>
         <td style="width:120px"><div class="bar-inline" style="width:${Math.round(((r.total_bookings||0)/maxBookings)*100)}%"></div></td>
-        <td style="color:var(--text-muted);font-size:0.82rem">${r.last_used ? formatDate(r.last_used) : "Never"}</td>
+        <td style="color:var(--text-muted);font-size:12px">${r.last_used ? formatDate(r.last_used) : "Never"}</td>
       </tr>
     `).join("");
   }
 
   function renderTopUsers(users) {
     const tbody = document.getElementById("top-users-tbody");
-    if (!users || !users.length) { tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:1.5rem;">No data.</td></tr>`; return; }
+    if (!users || !users.length) { tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:2rem;font-weight:300;">No data.</td></tr>`; return; }
     tbody.innerHTML = users.slice(0, 10).map((u, i) => `
       <tr>
-        <td style="color:var(--text-muted)">${i+1}</td>
+        <td style="color:var(--text-muted);font-size:12px">${i+1}</td>
         <td>${escHtml(u.name)}</td>
-        <td><span style="color:var(--text-muted);font-size:0.82rem">${escHtml(u.role_name)}</span></td>
+        <td><span style="color:var(--text-muted);font-size:12px">${escHtml(u.role_name)}</span></td>
         <td><strong>${u.total_bookings || 0}</strong></td>
-        <td>${u.confirmed_bookings || 0}</td>
-        <td>${u.cancelled_bookings || 0}</td>
+        <td style="color:var(--text-dim)">${u.confirmed_bookings || 0}</td>
+        <td style="color:var(--text-dim)">${u.cancelled_bookings || 0}</td>
       </tr>
     `).join("");
   }
@@ -281,8 +563,6 @@
   function formatDate(dt) { if (!dt) return "—"; return new Date(dt).toLocaleDateString("en-IN",{day:"2-digit",month:"short",year:"numeric"}); }
   function showToast(msg,type="info"){const c=document.getElementById("toast-container");const t=document.createElement("div");t.className=`toast toast-${type}`;t.textContent=msg;c.appendChild(t);setTimeout(()=>t.classList.add("show"),10);setTimeout(()=>{t.classList.remove("show");setTimeout(()=>t.remove(),300)},3500);}
 
-  Chart.defaults.color = "#94a3b8";
-  Chart.defaults.borderColor = "#1e293b";
   loadAll();
 </script>
 </body>
