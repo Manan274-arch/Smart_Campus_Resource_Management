@@ -114,7 +114,7 @@
 <div id="toast-container"></div>
 
 <script>
-  const API = "/api";
+  const API = "http://127.0.0.1:8000/api";
 
   // Check if already logged in
   if (localStorage.getItem("campus_token")) {
@@ -141,7 +141,7 @@
     btn.disabled = true; btn.textContent = "Logging in…";
 
     try {
-      const res = await fetch(`${API}/users/login`, {
+      const res = await fetch(`${API}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password })
@@ -150,7 +150,7 @@
       if (!res.ok) { errEl.textContent = data.detail || "Login failed."; return; }
 
       localStorage.setItem("campus_token", data.access_token);
-      localStorage.setItem("campus_user", JSON.stringify({ user_id: data.user_id, role_id: data.role_id, email }));
+      localStorage.setItem("campus_user", JSON.stringify({ user_id: data.user_id, role_id: data.role_id, email, name: data.name || email.split("@")[0] }));
       window.location.href = "dashboard.html";
     } catch(e) {
       errEl.textContent = "Network error.";
@@ -174,7 +174,7 @@
     btn.disabled = true; btn.textContent = "Creating account…";
 
     try {
-      const res = await fetch(`${API}/users/register`, {
+      const res = await fetch(`${API}/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, email, password, role_id })

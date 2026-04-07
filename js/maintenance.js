@@ -8,7 +8,7 @@
  *  - Filter by status / resource
  */
 
-const API = "/api";
+const API = "http://127.0.0.1:8000/api";
 let currentUser = null;
 let allIssues = [];
 let resourceMap = {};
