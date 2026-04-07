@@ -4,7 +4,7 @@ from database import engine, Base
 import models  # import all models so Base knows about them
 
 # Import routers
-from routers import auth, resources, bookings, maintenance, analytics
+from routers import auth, resources, bookings, maintenance, analytics, reports
 
 # Create all tables
 Base.metadata.create_all(bind=engine)
@@ -30,6 +30,7 @@ app.include_router(resources.router)
 app.include_router(bookings.router)
 app.include_router(maintenance.router)
 app.include_router(analytics.router)
+app.include_router(reports.router)
 
 
 @app.get("/")

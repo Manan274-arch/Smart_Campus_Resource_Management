@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Smart Campus — DBMS Reports</title>
+  <meta name="description" content="DBMS concept demonstrations using live campus data — JOINs, GROUP BY, constraints, conflict analysis." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:           #0c0e12;
+      --surface:      #13161c;
+      --surface2:     #1a1e27;
+      --surface3:     #21262f;
+      --border:       rgba(255,255,255,0.07);
+      --border-hover: rgba(255,255,255,0.14);
+      --accent:       #5b7fff;
+      --accent-glow:  rgba(91,127,255,0.18);
+      --accent-dim:   rgba(91,127,255,0.08);
+      --text:         #f0f2f7;
+      --text-muted:   #6b7280;
+      --text-dim:     #9ca3af;
+      --success:      #22c55e;
+      --warning:      #f59e0b;
+      --danger:       #f87171;
+      --rose:         #fb7185;
+      --purple:       #a78bfa;
+      --cyan:         #22d3ee;
+      --serif:        'Instrument Serif', Georgia, serif;
+      --sans:         'DM Sans', sans-serif;
+      --mono:         'JetBrains Mono', monospace;
+    }
+
+    html, body {
+      min-height: 100%;
+      background: var(--bg);
+      font-family: var(--sans);
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── NAVBAR ──────────────────────────────────────────── */
+    .navbar {
+      height: 52px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 28px;
+      gap: 4px;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+    .nav-brand {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 14px; font-weight: 500; color: var(--text);
+      text-decoration: none; margin-right: 12px; letter-spacing: -0.01em;
+    }
+    .nav-brand-icon {
+      width: 26px; height: 26px; background: var(--accent);
+      border-radius: 6px; display: flex; align-items: center;
+      justify-content: center; flex-shrink: 0;
+    }
+    .nav-brand-icon svg { width: 13px; height: 13px; stroke: #fff; fill: none; stroke-width: 2; }
+    .nav-links { display: flex; align-items: center; gap: 2px; }
+    .nav-link {
+      font-size: 13px; color: var(--text-muted); text-decoration: none;
+      padding: 5px 11px; border-radius: 7px;
+      transition: color 0.15s, background 0.15s; font-weight: 400;
+    }
+    .nav-link:hover { color: var(--text); background: var(--surface2); }
+    .nav-link.active { color: var(--text); background: var(--surface2); }
+    .nav-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+    .nav-user { font-size: 13px; color: var(--text-dim); font-weight: 300; }
+
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      border-radius: 8px; font-family: var(--sans); font-weight: 500;
+      cursor: pointer; transition: all 0.18s ease; text-decoration: none;
+      border: none; white-space: nowrap;
+    }
+    .btn-outline {
+      background: transparent; color: var(--text-dim); font-size: 13px;
+      padding: 7px 16px; height: 34px; border: 1px solid var(--border-hover);
+    }
+    .btn-outline:hover { color: var(--text); border-color: rgba(255,255,255,0.24); background: var(--surface2); }
+    .btn-sm { font-size: 12.5px; padding: 5px 13px; height: 30px; border-radius: 7px; }
+
+    /* ── CONTAINER ───────────────────────────────────────── */
+    .container { max-width: 1220px; margin: 0 auto; padding: 32px 28px 64px; }
+    .page-header { margin-bottom: 28px; }
+    .page-header h2 {
+      font-family: var(--serif); font-size: 28px; font-weight: 400;
+      letter-spacing: -0.02em; color: var(--text); line-height: 1.2; margin: 0;
+    }
+    .page-header p { font-size: 13px; color: var(--text-muted); margin-top: 4px; font-weight: 300; }
+
+    /* ── SECTION ─────────────────────────────────────────── */
+    .report-section { margin-bottom: 32px; }
+
+    .section-label {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-family: var(--mono); font-size: 10.5px; font-weight: 500;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      padding: 4px 10px; border-radius: 5px; margin-bottom: 10px;
+    }
+    .label-join      { background: rgba(91,127,255,0.12);  color: var(--accent); }
+    .label-groupby   { background: rgba(167,139,250,0.12); color: var(--purple); }
+    .label-complex   { background: rgba(34,211,238,0.12);  color: var(--cyan);   }
+    .label-conflict  { background: rgba(248,113,113,0.12); color: var(--danger);  }
+    .label-avail     { background: rgba(34,197,94,0.12);   color: var(--success); }
+    .label-maint     { background: rgba(245,158,11,0.12);  color: var(--warning); }
+    .label-audit     { background: rgba(156,163,175,0.12); color: var(--text-dim);}
+
+    .section-title {
+      font-family: var(--serif); font-size: 20px; font-weight: 400;
+      letter-spacing: -0.01em; margin-bottom: 14px;
+    }
+
+    /* ── CARD / TABLE ────────────────────────────────────── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      transition: border-color 0.2s;
+    }
+    .card:hover { border-color: var(--border-hover); }
+    .card-body { padding: 1.25rem; }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+    @media (max-width: 900px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+
+    /* Stats cards */
+    .stat-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 1.25rem; transition: border-color 0.2s;
+    }
+    .stat-card:hover { border-color: var(--border-hover); }
+    .stat-label {
+      font-size: 11px; font-weight: 500; color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px;
+    }
+    .stat-value {
+      font-family: var(--serif); font-size: 32px; font-weight: 400;
+      color: var(--text); line-height: 1.1;
+    }
+    .stat-sub { font-size: 12px; color: var(--text-dim); margin-top: 4px; }
+
+    /* Tables */
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    thead th {
+      text-align: left; padding: 10px 16px; font-size: 11px; font-weight: 500;
+      color: var(--text-muted); text-transform: uppercase;
+      letter-spacing: 0.06em; border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    tbody td {
+      padding: 10px 16px; border-bottom: 1px solid var(--border);
+      color: var(--text); vertical-align: middle;
+    }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr { transition: background 0.12s; }
+    tbody tr:hover td { background: rgba(255,255,255,0.02); }
+
+    /* ── BADGES ──────────────────────────────────────────── */
+    .badge {
+      display: inline-block; font-size: 11px; font-weight: 500;
+      padding: 3px 8px; border-radius: 5px;
+      text-transform: capitalize; letter-spacing: 0.01em;
+    }
+    .badge-success { background: rgba(34,197,94,0.12);  color: #22c55e; }
+    .badge-warning { background: rgba(245,158,11,0.12); color: #f59e0b; }
+    .badge-danger  { background: rgba(248,113,113,0.12); color: #f87171; }
+    .badge-neutral { background: rgba(107,114,128,0.12); color: #9ca3af; }
+    .badge-accent  { background: rgba(91,127,255,0.12);  color: #5b7fff; }
+    .badge-purple  { background: rgba(167,139,250,0.12); color: #a78bfa; }
+
+    /* ── AVAILABILITY GRID ───────────────────────────────── */
+    .avail-grid { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .avail-chip {
+      font-size: 11px; padding: 4px 10px; border-radius: 6px;
+      font-family: var(--mono); font-weight: 400;
+      transition: transform 0.1s;
+    }
+    .avail-chip:hover { transform: scale(1.05); }
+    .avail-chip.open   { background: rgba(34,197,94,0.1);   color: #22c55e; border: 1px solid rgba(34,197,94,0.2); }
+    .avail-chip.booked { background: rgba(248,113,113,0.08); color: #f87171; border: 1px solid rgba(248,113,113,0.15); text-decoration: line-through; }
+
+    /* ── BAR CHART ────────────────────────────────────────── */
+    .bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+    .bar-label { font-size: 12px; color: var(--text-dim); width: 130px; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .bar-track { flex: 1; height: 22px; background: var(--surface2); border-radius: 5px; overflow: hidden; position: relative; }
+    .bar-fill {
+      height: 100%; border-radius: 5px;
+      transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+      min-width: 2px;
+    }
+    .bar-count { font-size: 11px; font-family: var(--mono); color: var(--text-dim); width: 40px; }
+
+    /* ── CONFLICT ROW HIGHLIGHT ──────────────────────────── */
+    .conflict-row td { background: rgba(248,113,113,0.04) !important; }
+    .conflict-row:hover td { background: rgba(248,113,113,0.08) !important; }
+
+    /* ── EMPTY STATE ─────────────────────────────────────── */
+    .empty-state {
+      text-align: center; padding: 32px 16px;
+      color: var(--text-muted); font-size: 13px; font-weight: 300;
+    }
+
+    /* ── LOADING ─────────────────────────────────────────── */
+    .loading-shimmer {
+      height: 18px; border-radius: 4px; margin-bottom: 8px;
+      background: linear-gradient(90deg, var(--surface2) 25%, var(--surface3) 50%, var(--surface2) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+    }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+    .hidden { display: none !important; }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .container { animation: fadeUp 0.35s ease both; }
+    .report-section { animation: fadeUp 0.4s ease both; }
+    .report-section:nth-child(2) { animation-delay: 0.05s; }
+    .report-section:nth-child(3) { animation-delay: 0.1s; }
+    .report-section:nth-child(4) { animation-delay: 0.15s; }
+    .report-section:nth-child(5) { animation-delay: 0.2s; }
+    .report-section:nth-child(6) { animation-delay: 0.25s; }
+    .report-section:nth-child(7) { animation-delay: 0.3s; }
+
+    @media (max-width: 768px) {
+      .container { padding: 24px 16px 48px; }
+      .navbar { padding: 0 16px; }
+      .nav-links { display: none; }
+      .bar-label { width: 80px; font-size: 11px; }
+    }
+
+    /* ── SCROLLBAR ────────────────────────────────────────── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 3px; }
+
+    .table-scroll { max-height: 420px; overflow-y: auto; }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="navbar">
+  <div class="nav-brand">
+    <div class="nav-brand-icon">
+      <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    </div>
+    Smart Campus
+  </div>
+  <div class="nav-links">
+    <a href="dashboard.html"   class="nav-link">Dashboard</a>
+    <a href="booking.html"     class="nav-link">Bookings</a>
+    <a href="maintenance.html" class="nav-link">Maintenance</a>
+    <a href="analytics.html"   class="nav-link">Analytics</a>
+    <a href="dbms_reports.html" class="nav-link active">DBMS Reports</a>
+  </div>
+  <div class="nav-right">
+    <span class="nav-user" id="nav-user">User</span>
+    <button class="btn btn-outline btn-sm" id="btn-logout">Logout</button>
+  </div>
+</nav>
+
+<main class="container">
+  <div class="page-header">
+    <h2>DBMS Concept Reports</h2>
+    <p>Live demonstrations of SQL concepts — JOINs, GROUP BY, aggregates, constraints, and conflict analysis — using real campus data.</p>
+  </div>
+
+  <!-- ═══ 1. JOIN QUERY OUTPUT ═══ -->
+  <div class="report-section" id="sec-join">
+    <span class="section-label label-join">⬡ JOIN RESULT</span>
+    <h3 class="section-title">Multi-Table JOIN — Booking Details</h3>
+    <div class="card">
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>User</th>
+              <th>Resource</th>
+              <th>Date</th>
+              <th>Slot</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="join-tbody">
+            <tr><td colspan="6" class="empty-state"><div class="loading-shimmer" style="width:60%;margin:0 auto"></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ 2. GROUP BY / AGGREGATES ═══ -->
+  <div class="report-section" id="sec-groupby">
+    <span class="section-label label-groupby">⬡ GROUP BY RESULT</span>
+    <h3 class="section-title">Aggregate Queries</h3>
+
+    <div class="grid-3" style="margin-bottom:16px">
+      <div class="stat-card" id="stat-most-used">
+        <div class="stat-label">Most Used Resource</div>
+        <div class="stat-value" id="most-used-name">—</div>
+        <div class="stat-sub" id="most-used-count"></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Total Resources Booked</div>
+        <div class="stat-value" id="total-res-booked">—</div>
+        <div class="stat-sub">Distinct resources with bookings</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Active Days (30d)</div>
+        <div class="stat-value" id="active-days">—</div>
+        <div class="stat-sub">Days with at least 1 booking</div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <!-- Bookings per resource (bar chart) -->
+      <div class="card">
+        <div class="card-body">
+          <div class="stat-label" style="margin-bottom:12px">Bookings per Resource</div>
+          <div id="bar-per-resource"></div>
+        </div>
+      </div>
+      <!-- Bookings per day (bar chart) -->
+      <div class="card">
+        <div class="card-body">
+          <div class="stat-label" style="margin-bottom:12px">Bookings per Day (Last 30 Days)</div>
+          <div id="bar-per-day" style="max-height:300px;overflow-y:auto"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ 3. COMPLEX QUERIES ═══ -->
+  <div class="report-section" id="sec-complex">
+    <span class="section-label label-complex">⬡ SUBQUERY / HAVING</span>
+    <h3 class="section-title">Complex Query Results</h3>
+    <div class="grid-3">
+      <div class="card">
+        <div class="card-body">
+          <div class="stat-label" style="margin-bottom:10px">Top 5 Resources</div>
+          <table>
+            <thead><tr><th>Resource</th><th style="text-align:right">Bookings</th></tr></thead>
+            <tbody id="top-resources-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-body">
+          <div class="stat-label" style="margin-bottom:10px">Top 5 Users</div>
+          <table>
+            <thead><tr><th>User</th><th style="text-align:right">Bookings</th></tr></thead>
+            <tbody id="top-users-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-body">
+          <div class="stat-label" style="margin-bottom:10px">Most Used Slots</div>
+          <table>
+            <thead><tr><th>Slot</th><th style="text-align:right">Bookings</th></tr></thead>
+            <tbody id="top-slots-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ 4. CONFLICT ANALYSIS ═══ -->
+  <div class="report-section" id="sec-conflict">
+    <span class="section-label label-conflict">⬡ CONSTRAINT DEMO</span>
+    <h3 class="section-title">Conflict Analysis</h3>
+
+    <div class="stat-card" style="margin-bottom:16px;border-left:3px solid var(--danger);">
+      <div class="stat-label">Total Rejected (Conflict) Bookings</div>
+      <div class="stat-value" style="color:var(--danger)" id="conflict-count">—</div>
+      <div class="stat-sub">Bookings that targeted an already-confirmed slot</div>
+    </div>
+
+    <div class="card">
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>User</th>
+              <th>Resource</th>
+              <th>Date</th>
+              <th>Slot</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="conflict-tbody">
+            <tr><td colspan="6" class="empty-state">Loading conflicts…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ 5. AVAILABILITY DEMO ═══ -->
+  <div class="report-section" id="sec-avail">
+    <span class="section-label label-avail">⬡ NOT EXISTS / LEFT JOIN</span>
+    <h3 class="section-title">Today's Slot Availability</h3>
+    <div id="avail-container" class="grid-2" style="gap:12px"></div>
+  </div>
+
+  <!-- ═══ 6. MAINTENANCE VS BOOKINGS ═══ -->
+  <div class="report-section" id="sec-maint">
+    <span class="section-label label-maint">⬡ CORRELATED SUBQUERY</span>
+    <h3 class="section-title">Maintenance vs. Future Bookings</h3>
+    <div class="card">
+      <table>
+        <thead>
+          <tr>
+            <th>Resource</th>
+            <th>Issue</th>
+            <th>Status</th>
+            <th style="text-align:right">Future Bookings</th>
+          </tr>
+        </thead>
+        <tbody id="maint-tbody">
+          <tr><td colspan="4" class="empty-state">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ═══ 7. AUDIT LOG ═══ -->
+  <div class="report-section" id="sec-audit">
+    <span class="section-label label-audit">⬡ TRIGGER / AUDIT LOG</span>
+    <h3 class="section-title">Maintenance Audit Log</h3>
+    <div class="card">
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Action</th>
+              <th>Resource</th>
+              <th>Table</th>
+              <th>Timestamp</th>
+            </tr>
+          </thead>
+          <tbody id="audit-tbody">
+            <tr><td colspan="5" class="empty-state">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+  /* ────────────────────────────────────────────────────────
+     CONFIG & AUTH
+     ──────────────────────────────────────────────────────── */
+  const API = "http://127.0.0.1:8000/api";
+  const user = JSON.parse(localStorage.getItem("campus_user") || "null");
+  if (!user) window.location.href = "index.html";
+  document.getElementById("nav-user").textContent = user?.name || user?.email || "User";
+  document.getElementById("btn-logout").addEventListener("click", () => {
+    localStorage.clear(); window.location.href = "index.html";
+  });
+
+  function getToken() { return localStorage.getItem("campus_token") || ""; }
+
+  async function apiFetch(path) {
+    try {
+      const res = await fetch(`${API}${path}`, {
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
+      });
+      if (res.status === 401) { localStorage.clear(); window.location.href = "index.html"; return null; }
+      if (!res.ok) return null;
+      return await res.json();
+    } catch { return null; }
+  }
+
+  function escHtml(s) {
+    const d = document.createElement("div");
+    d.appendChild(document.createTextNode(s || ""));
+    return d.innerHTML;
+  }
+
+  function statusBadge(s) {
+    const m = { confirmed: "success", completed: "accent", pending: "warning", cancelled: "neutral", rejected_conflict: "danger" };
+    return `<span class="badge badge-${m[s] || 'neutral'}">${escHtml(s)}</span>`;
+  }
+
+  function emptyRow(cols, msg = "No data available") {
+    return `<tr><td colspan="${cols}" class="empty-state">${msg}</td></tr>`;
+  }
+
+  const BAR_COLORS = ["#5b7fff", "#a78bfa", "#22d3ee", "#22c55e", "#f59e0b", "#fb7185", "#f87171", "#818cf8"];
+
+  /* ────────────────────────────────────────────────────────
+     1. JOIN QUERY
+     ──────────────────────────────────────────────────────── */
+  async function loadJoinBookings() {
+    const data = await apiFetch("/reports/join-bookings?limit=50");
+    const tbody = document.getElementById("join-tbody");
+    if (!data || data.length === 0) { tbody.innerHTML = emptyRow(6); return; }
+    tbody.innerHTML = data.map(r => `
+      <tr>
+        <td style="color:var(--text-muted);font-size:12px">#${r.booking_id}</td>
+        <td>${escHtml(r.user)}</td>
+        <td>${escHtml(r.resource)}</td>
+        <td style="color:var(--text-dim)">${r.date}</td>
+        <td style="font-family:var(--mono);font-size:12px;color:var(--text-dim)">${r.slot}</td>
+        <td>${statusBadge(r.status)}</td>
+      </tr>
+    `).join("");
+  }
+
+  /* ────────────────────────────────────────────────────────
+     2. GROUP BY / AGGREGATES
+     ──────────────────────────────────────────────────────── */
+  async function loadAggregates() {
+    const data = await apiFetch("/reports/aggregates");
+    if (!data) return;
+
+    // Most used resource
+    document.getElementById("most-used-name").textContent = data.most_used?.resource || "—";
+    document.getElementById("most-used-count").textContent = data.most_used?.count ? `${data.most_used.count} bookings` : "";
+
+    // Stats
+    document.getElementById("total-res-booked").textContent = data.per_resource?.length || 0;
+    document.getElementById("active-days").textContent = data.per_day?.length || 0;
+
+    // Bar chart — per resource
+    const maxRes = Math.max(...data.per_resource.map(r => r.count), 1);
+    document.getElementById("bar-per-resource").innerHTML = data.per_resource.slice(0, 12).map((r, i) => `
+      <div class="bar-row">
+        <div class="bar-label" title="${escHtml(r.resource)}">${escHtml(r.resource)}</div>
+        <div class="bar-track">
+          <div class="bar-fill" style="width:${(r.count / maxRes * 100).toFixed(1)}%;background:${BAR_COLORS[i % BAR_COLORS.length]}"></div>
+        </div>
+        <div class="bar-count">${r.count}</div>
+      </div>
+    `).join("");
+
+    // Bar chart — per day
+    if (data.per_day.length > 0) {
+      const maxDay = Math.max(...data.per_day.map(d => d.count), 1);
+      document.getElementById("bar-per-day").innerHTML = data.per_day.map((d, i) => `
+        <div class="bar-row">
+          <div class="bar-label">${d.date}</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:${(d.count / maxDay * 100).toFixed(1)}%;background:${BAR_COLORS[(i + 2) % BAR_COLORS.length]}"></div>
+          </div>
+          <div class="bar-count">${d.count}</div>
+        </div>
+      `).join("");
+    } else {
+      document.getElementById("bar-per-day").innerHTML = '<div class="empty-state">No bookings in last 30 days</div>';
+    }
+  }
+
+  /* ────────────────────────────────────────────────────────
+     3. COMPLEX QUERIES
+     ──────────────────────────────────────────────────────── */
+  async function loadComplex() {
+    const data = await apiFetch("/reports/complex");
+    if (!data) return;
+
+    function rankTable(items, tbody, labelKey, countKey) {
+      const el = document.getElementById(tbody);
+      if (!items || items.length === 0) { el.innerHTML = emptyRow(2); return; }
+      el.innerHTML = items.map((r, i) => `
+        <tr>
+          <td>
+            <span style="color:var(--text-muted);font-size:11px;margin-right:6px">${i + 1}.</span>
+            ${escHtml(r[labelKey])}
+          </td>
+          <td style="text-align:right;font-family:var(--mono);font-size:12px;color:var(--text-dim)">${r[countKey]}</td>
+        </tr>
+      `).join("");
+    }
+
+    rankTable(data.top_resources, "top-resources-tbody", "resource", "bookings");
+    rankTable(data.top_users, "top-users-tbody", "user", "bookings");
+    rankTable(data.top_slots, "top-slots-tbody", "slot", "bookings");
+  }
+
+  /* ────────────────────────────────────────────────────────
+     4. CONFLICT ANALYSIS
+     ──────────────────────────────────────────────────────── */
+  async function loadConflicts() {
+    const data = await apiFetch("/reports/conflicts");
+    const tbody = document.getElementById("conflict-tbody");
+    document.getElementById("conflict-count").textContent = data?.total_conflicts ?? "—";
+
+    if (!data || !data.conflicts || data.conflicts.length === 0) {
+      tbody.innerHTML = emptyRow(6, "No conflict bookings found");
+      return;
+    }
+    tbody.innerHTML = data.conflicts.map(c => `
+      <tr class="conflict-row">
+        <td style="color:var(--text-muted);font-size:12px">#${c.booking_id}</td>
+        <td>${escHtml(c.user)}</td>
+        <td>${escHtml(c.resource)}</td>
+        <td style="color:var(--text-dim)">${c.date}</td>
+        <td style="font-family:var(--mono);font-size:12px;color:var(--text-dim)">${c.slot}</td>
+        <td>${statusBadge("rejected_conflict")}</td>
+      </tr>
+    `).join("");
+  }
+
+  /* ────────────────────────────────────────────────────────
+     5. AVAILABILITY DEMO
+     ──────────────────────────────────────────────────────── */
+  async function loadAvailability() {
+    const data = await apiFetch("/reports/availability");
+    const container = document.getElementById("avail-container");
+    if (!data || data.length === 0) {
+      container.innerHTML = '<div class="empty-state" style="grid-column:1/-1">No available resources to display</div>';
+      return;
+    }
+    container.innerHTML = data.map(res => `
+      <div class="card">
+        <div class="card-body">
+          <div style="font-weight:500;margin-bottom:2px">${escHtml(res.resource)}</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px">Resource #${res.resource_id} — Today</div>
+          <div class="avail-grid">
+            ${res.slots.map(s =>
+              `<div class="avail-chip ${s.available ? 'open' : 'booked'}">${s.slot}</div>`
+            ).join("")}
+          </div>
+        </div>
+      </div>
+    `).join("");
+  }
+
+  /* ────────────────────────────────────────────────────────
+     6. MAINTENANCE VS BOOKINGS
+     ──────────────────────────────────────────────────────── */
+  async function loadMaintBookings() {
+    const data = await apiFetch("/reports/maintenance-bookings");
+    const tbody = document.getElementById("maint-tbody");
+    if (!data || data.length === 0) {
+      tbody.innerHTML = emptyRow(4, "No active maintenance records");
+      return;
+    }
+    tbody.innerHTML = data.map(m => `
+      <tr>
+        <td>${escHtml(m.resource)}</td>
+        <td style="font-size:12.5px;color:var(--text-dim)">${escHtml(m.issue)}</td>
+        <td><span class="badge badge-warning">${escHtml(m.maintenance_status)}</span></td>
+        <td style="text-align:right;font-family:var(--mono)">
+          ${m.future_bookings > 0
+            ? `<span style="color:var(--danger)">${m.future_bookings} ⚠</span>`
+            : `<span style="color:var(--success)">0</span>`
+          }
+        </td>
+      </tr>
+    `).join("");
+  }
+
+  /* ────────────────────────────────────────────────────────
+     7. AUDIT LOG
+     ──────────────────────────────────────────────────────── */
+  async function loadAuditLog() {
+    const data = await apiFetch("/reports/audit-log");
+    const tbody = document.getElementById("audit-tbody");
+    if (!data || data.length === 0) {
+      tbody.innerHTML = emptyRow(5, "No audit log entries — trigger will populate after maintenance status changes");
+      return;
+    }
+    tbody.innerHTML = data.map(l => `
+      <tr>
+        <td style="color:var(--text-muted);font-size:12px">#${l.log_id}</td>
+        <td>${escHtml(l.action)}</td>
+        <td>${escHtml(l.resource)}</td>
+        <td><span class="badge badge-neutral">${escHtml(l.table)}</span></td>
+        <td style="font-family:var(--mono);font-size:11.5px;color:var(--text-dim)">${l.timestamp || "—"}</td>
+      </tr>
+    `).join("");
+  }
+
+  /* ────────────────────────────────────────────────────────
+     INIT — fire all fetches in parallel
+     ──────────────────────────────────────────────────────── */
+  Promise.all([
+    loadJoinBookings(),
+    loadAggregates(),
+    loadComplex(),
+    loadConflicts(),
+    loadAvailability(),
+    loadMaintBookings(),
+    loadAuditLog(),
+  ]);
+</script>
+</body>
+</html>
